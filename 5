@@ -1,4 +1,4 @@
--- WA Universal ESP with Chams, Skeletons & Aimbot (FIXED)
+-- WA Universal ESP with Chams, Skeletons & Aimbot (FIXED - Settings Update)
 -- Services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -14,7 +14,20 @@ local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.
 
 -- Load Aimbot
 local Aimbot = loadstring(game:HttpGet("https://raw.githubusercontent.com/Exunys/Aimbot-V3/main/src/Aimbot.lua"))()
-Aimbot.Load() -- Initialize the aimbot
+Aimbot.Load()
+
+-- Function to force update aimbot settings
+local function UpdateAimbotSettings()
+    -- Reassign the settings to force a refresh
+    Aimbot.Settings = getgenv().ExunysDeveloperAimbot.Settings
+    Aimbot.FOVSettings = getgenv().ExunysDeveloperAimbot.FOVSettings
+    Aimbot.DeveloperSettings = getgenv().ExunysDeveloperAimbot.DeveloperSettings
+    
+    -- Force a settings update if the function exists
+    if Aimbot.UpdateSettings then
+        Aimbot.UpdateSettings()
+    end
+end
 
 -- Configure Aimbot settings
 getgenv().ExunysDeveloperAimbot = {
@@ -24,7 +37,7 @@ getgenv().ExunysDeveloperAimbot = {
         RainbowSpeed = 1
     },
     Settings = {
-        Enabled = false, -- Start disabled
+        Enabled = false,
         TeamCheck = false,
         AliveCheck = true,
         WallCheck = false,
@@ -52,6 +65,9 @@ getgenv().ExunysDeveloperAimbot = {
         LockedColor = Color3.fromRGB(255, 150, 150)
     }
 }
+
+-- Initial settings sync
+UpdateAimbotSettings()
 
 -- Drawing Cache
 local ESP_Cache = {}
@@ -147,8 +163,8 @@ do
     })
     TeamCheckToggle:OnChanged(function()
         Config.TeamCheck = TeamCheckToggle.Value
-        -- Update aimbot team check
         getgenv().ExunysDeveloperAimbot.Settings.TeamCheck = Config.TeamCheck
+        UpdateAimbotSettings()
     end)
     
     local ShowTeamToggle = MainSection:AddToggle("ShowTeam", {
@@ -332,7 +348,7 @@ do
     end)
 end
 
--- Aimbot Tab
+-- Aimbot Tab (UPDATED with settings refresh)
 do
     local AimbotSection = Tabs.Aimbot:AddSection("Aimbot Controls")
     
@@ -343,32 +359,33 @@ do
     AimbotToggle:OnChanged(function()
         Config.AimbotEnabled = AimbotToggle.Value
         getgenv().ExunysDeveloperAimbot.Settings.Enabled = Config.AimbotEnabled
+        UpdateAimbotSettings()
     end)
     
-    -- Trigger Key
+    -- Trigger Key (UPDATED with Mouse 4 & 5)
     local KeySection = Tabs.Aimbot:AddSection("Trigger Settings")
     
     local KeyDropdown = KeySection:AddDropdown("TriggerKey", {
         Title = "Aimbot Key",
-        Values = {"MouseButton2", "MouseButton1", "LeftControl", "LeftShift", "E", "Q", "F", "V", "C", "X", "Z"},
+        Values = {"MouseButton1", "MouseButton2", "MouseButton3", "MouseButton4", "MouseButton5", "LeftControl", "LeftShift", "E", "Q", "F"},
         Default = "MouseButton2",
         Multi = false
     })
     KeyDropdown:OnChanged(function(Value)
         local keyMap = {
-            MouseButton2 = Enum.UserInputType.MouseButton2,
             MouseButton1 = Enum.UserInputType.MouseButton1,
+            MouseButton2 = Enum.UserInputType.MouseButton2,
+            MouseButton3 = Enum.UserInputType.MouseButton3,
+            MouseButton4 = Enum.UserInputType.MouseButton4,
+            MouseButton5 = Enum.UserInputType.MouseButton5,
             LeftControl = Enum.KeyCode.LeftControl,
             LeftShift = Enum.KeyCode.LeftShift,
             E = Enum.KeyCode.E,
             Q = Enum.KeyCode.Q,
-            F = Enum.KeyCode.F,
-            V = Enum.KeyCode.V,
-            C = Enum.KeyCode.C,
-            X = Enum.KeyCode.X,
-            Z = Enum.KeyCode.Z
+            F = Enum.KeyCode.F
         }
         getgenv().ExunysDeveloperAimbot.Settings.TriggerKey = keyMap[Value]
+        UpdateAimbotSettings()
     end)
     
     local ToggleMode = KeySection:AddToggle("ToggleMode", {
@@ -378,6 +395,7 @@ do
     })
     ToggleMode:OnChanged(function(Value)
         getgenv().ExunysDeveloperAimbot.Settings.Toggle = Value
+        UpdateAimbotSettings()
     end)
     
     -- FOV Settings
@@ -389,6 +407,7 @@ do
     })
     FOVEnabled:OnChanged(function(Value)
         getgenv().ExunysDeveloperAimbot.FOVSettings.Enabled = Value
+        UpdateAimbotSettings()
     end)
     
     local FOVVisible = FOVSection:AddToggle("FOVVisible", {
@@ -397,6 +416,7 @@ do
     })
     FOVVisible:OnChanged(function(Value)
         getgenv().ExunysDeveloperAimbot.FOVSettings.Visible = Value
+        UpdateAimbotSettings()
     end)
     
     local FOVRadius = FOVSection:AddSlider("FOVRadius", {
@@ -408,6 +428,7 @@ do
     })
     FOVRadius:OnChanged(function(Value)
         getgenv().ExunysDeveloperAimbot.FOVSettings.Radius = Value
+        UpdateAimbotSettings()
     end)
     
     local FOVColor = FOVSection:AddColorpicker("FOVColor", {
@@ -416,6 +437,7 @@ do
     })
     FOVColor:OnChanged(function(Value)
         getgenv().ExunysDeveloperAimbot.FOVSettings.Color = Value
+        UpdateAimbotSettings()
     end)
     
     local FOVThickness = FOVSection:AddSlider("FOVThickness", {
@@ -427,6 +449,7 @@ do
     })
     FOVThickness:OnChanged(function(Value)
         getgenv().ExunysDeveloperAimbot.FOVSettings.Thickness = Value
+        UpdateAimbotSettings()
     end)
     
     local FOVTransparency = FOVSection:AddSlider("FOVTransparency", {
@@ -438,6 +461,7 @@ do
     })
     FOVTransparency:OnChanged(function(Value)
         getgenv().ExunysDeveloperAimbot.FOVSettings.Transparency = Value
+        UpdateAimbotSettings()
     end)
     
     -- Lock Settings
@@ -451,6 +475,7 @@ do
     })
     LockPart:OnChanged(function(Value)
         getgenv().ExunysDeveloperAimbot.Settings.LockPart = Value
+        UpdateAimbotSettings()
     end)
     
     local WallCheck = LockSection:AddToggle("WallCheck", {
@@ -460,6 +485,7 @@ do
     })
     WallCheck:OnChanged(function(Value)
         getgenv().ExunysDeveloperAimbot.Settings.WallCheck = Value
+        UpdateAimbotSettings()
     end)
     
     local Sensitivity = LockSection:AddSlider("Sensitivity", {
@@ -471,6 +497,7 @@ do
     })
     Sensitivity:OnChanged(function(Value)
         getgenv().ExunysDeveloperAimbot.Settings.Sensitivity = Value
+        UpdateAimbotSettings()
     end)
 end
 
@@ -526,6 +553,7 @@ do
     RainbowSpeed:OnChanged(function(Value)
         Config.RainbowSpeed = Value
         getgenv().ExunysDeveloperAimbot.DeveloperSettings.RainbowSpeed = Value
+        UpdateAimbotSettings()
     end)
 end
 
@@ -547,7 +575,6 @@ do
         Title = "Unload ESP",
         Description = "Completely remove the ESP",
         Callback = function()
-            -- Clean up all drawings
             for _, objects in pairs(ESP_Cache) do
                 if objects.Box then
                     for _, line in pairs(objects.Box) do
@@ -568,12 +595,10 @@ do
                 end
             end
             
-            -- Clean up chams
             for _, highlight in pairs(ChamsCache) do
                 pcall(function() highlight:Destroy() end)
             end
             
-            -- Unload aimbot
             pcall(function() Aimbot:Exit() end)
             
             ESP_Cache = {}
@@ -583,7 +608,8 @@ do
     })
 end
 
--- ESP Functions
+-- ESP Functions (keep all your existing ESP functions here)
+-- [All your ESP functions remain exactly the same]
 local function GetPlayerColor(player)
     if Config.RainbowEnabled and Colors.Rainbow then
         return Colors.Rainbow
