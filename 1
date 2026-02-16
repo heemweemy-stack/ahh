@@ -1,458 +1,3 @@
--- WA Universal ESP with Chams and Skeletons
--- Services
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-local CoreGui = game:GetService("CoreGui")
-local Camera = workspace.CurrentCamera
-local LocalPlayer = Players.LocalPlayer
-
--- Load Fluent UI Library
-local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
-local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
-local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
-
--- Drawing Cache
-local ESP_Cache = {}
-local HighlightCache = {} -- Store Highlight instances for Chams
-
--- Configuration
-local Config = {
-    -- Menu
-    MenuOpen = true,
-    
-    -- ESP Toggles
-    Enabled = false,
-    BoxESP = false,
-    NameESP = false,
-    HealthESP = false,
-    TracerESP = false,
-    SkeletonESP = false,
-    ChamsESP = false,
-    
-    -- Settings
-    TeamCheck = false,
-    ShowTeam = false,
-    BoxStyle = "Corner",
-    TracerOrigin = "Bottom",
-    HealthStyle = "Bar",
-    RainbowEnabled = false,
-    
-    -- Visual Settings
-    BoxThickness = 1,
-    TextSize = 14,
-    MaxDistance = 1000,
-    RainbowSpeed = 1,
-    
-    -- Colors
-    EnemyColor = Color3.fromRGB(255, 25, 25),
-    AllyColor = Color3.fromRGB(25, 255, 25),
-    HealthColor = Color3.fromRGB(0, 255, 0),
-    SkeletonColor = Color3.fromRGB(255, 255, 255),
-    SkeletonThickness = 2,
-    
-    -- Chams Settings
-    ChamsColor = Color3.fromRGB(255, 0, 0),
-    ChamsTransparency = 0.5,
-    ChamsOutlineColor = Color3.fromRGB(255, 255, 255),
-    ChamsOutlineTransparency = 0,
-    ChamsFillMode = "Fill",
-}
-
--- Colors table for dynamic updates
-local Colors = {
-    Enemy = Config.EnemyColor,
-    Ally = Config.AllyColor,
-    Health = Config.HealthColor,
-    Rainbow = nil
-}
-
--- UI Setup with Fluent
-local Window = Fluent:CreateWindow({
-    Title = "WA Universal ESP",
-    SubTitle = "with Chams & Skeletons",
-    TabWidth = 160,
-    Size = UDim2.fromOffset(580, 460),
-    Acrylic = false,
-    Theme = "Dark",
-    MinimizeKey = Enum.KeyCode.LeftControl
-})
-
--- Create Tabs
-local Tabs = {
-    Main = Window:AddTab({ Title = "Main", Icon = "home" }),
-    ESP = Window:AddTab({ Title = "ESP", Icon = "eye" }),
-    Chams = Window:AddTab({ Title = "Chams", Icon = "palette" }),
-    Visuals = Window:AddTab({ Title = "Visuals", Icon = "brush" }),
-    Config = Window:AddTab({ Title = "Config", Icon = "save" })
-}
-
--- Main Tab
-do
-    local MainSection = Tabs.Main:AddSection("Main Controls")
-    
-    local EnabledToggle = MainSection:AddToggle("Enabled", {
-        Title = "Enable ESP",
-        Default = Config.Enabled
-    })
-    EnabledToggle:OnChanged(function()
-        Config.Enabled = EnabledToggle.Value
-    end)
-    
-    local TeamCheckToggle = MainSection:AddToggle("TeamCheck", {
-        Title = "Team Check",
-        Default = Config.TeamCheck
-    })
-    TeamCheckToggle:OnChanged(function()
-        Config.TeamCheck = TeamCheckToggle.Value
-    end)
-    
-    local ShowTeamToggle = MainSection:AddToggle("ShowTeam", {
-        Title = "Show Team",
-        Default = Config.ShowTeam
-    })
-    ShowTeamToggle:OnChanged(function()
-        Config.ShowTeam = ShowTeamToggle.Value
-    end)
-    
-    local MaxDistance = MainSection:AddSlider("MaxDistance", {
-        Title = "Max Distance",
-        Default = Config.MaxDistance,
-        Min = 100,
-        Max = 5000,
-        Rounding = 0
-    })
-    MaxDistance:OnChanged(function(Value)
-        Config.MaxDistance = Value
-    end)
-end
-
--- ESP Tab
-do
-    -- Box ESP Section
-    local BoxSection = Tabs.ESP:AddSection("Box ESP")
-    
-    local BoxESPToggle = BoxSection:AddToggle("BoxESP", {
-        Title = "Box ESP",
-        Default = Config.BoxESP
-    })
-    BoxESPToggle:OnChanged(function()
-        Config.BoxESP = BoxESPToggle.Value
-    end)
-    
-    local BoxStyleDropdown = BoxSection:AddDropdown("BoxStyle", {
-        Title = "Box Style",
-        Values = {"Corner", "Full"},
-        Default = Config.BoxStyle
-    })
-    BoxStyleDropdown:OnChanged(function(Value)
-        Config.BoxStyle = Value
-    end)
-    
-    local BoxThickness = BoxSection:AddSlider("BoxThickness", {
-        Title = "Box Thickness",
-        Default = Config.BoxThickness,
-        Min = 1,
-        Max = 5,
-        Rounding = 1
-    })
-    BoxThickness:OnChanged(function(Value)
-        Config.BoxThickness = Value
-    end)
-    
-    -- Name ESP Section
-    local NameSection = Tabs.ESP:AddSection("Name ESP")
-    
-    local NameESPToggle = NameSection:AddToggle("NameESP", {
-        Title = "Name ESP",
-        Default = Config.NameESP
-    })
-    NameESPToggle:OnChanged(function()
-        Config.NameESP = NameESPToggle.Value
-    end)
-    
-    local TextSize = NameSection:AddSlider("TextSize", {
-        Title = "Text Size",
-        Default = Config.TextSize,
-        Min = 10,
-        Max = 24,
-        Rounding = 0
-    })
-    TextSize:OnChanged(function(Value)
-        Config.TextSize = Value
-    end)
-    
-    -- Health ESP Section
-    local HealthSection = Tabs.ESP:AddSection("Health ESP")
-    
-    local HealthESPToggle = HealthSection:AddToggle("HealthESP", {
-        Title = "Health ESP",
-        Default = Config.HealthESP
-    })
-    HealthESPToggle:OnChanged(function()
-        Config.HealthESP = HealthESPToggle.Value
-    end)
-    
-    local HealthStyleDropdown = HealthSection:AddDropdown("HealthStyle", {
-        Title = "Health Style",
-        Values = {"Bar", "Text", "Both"},
-        Default = Config.HealthStyle
-    })
-    HealthStyleDropdown:OnChanged(function(Value)
-        Config.HealthStyle = Value
-    end)
-    
-    -- Tracer Section
-    local TracerSection = Tabs.ESP:AddSection("Tracers")
-    
-    local TracerESPToggle = TracerSection:AddToggle("TracerESP", {
-        Title = "Tracer ESP",
-        Default = Config.TracerESP
-    })
-    TracerESPToggle:OnChanged(function()
-        Config.TracerESP = TracerESPToggle.Value
-    end)
-    
-    local TracerOriginDropdown = TracerSection:AddDropdown("TracerOrigin", {
-        Title = "Tracer Origin",
-        Values = {"Bottom", "Top", "Mouse", "Center"},
-        Default = Config.TracerOrigin
-    })
-    TracerOriginDropdown:OnChanged(function(Value)
-        Config.TracerOrigin = Value
-    end)
-    
-    -- Skeleton Section
-    local SkeletonSection = Tabs.ESP:AddSection("Skeleton ESP")
-    
-    local SkeletonESPToggle = SkeletonSection:AddToggle("SkeletonESP", {
-        Title = "Skeleton ESP",
-        Default = Config.SkeletonESP
-    })
-    SkeletonESPToggle:OnChanged(function()
-        Config.SkeletonESP = SkeletonESPToggle.Value
-    end)
-    
-    local SkeletonColor = SkeletonSection:AddColorpicker("SkeletonColor", {
-        Title = "Skeleton Color",
-        Default = Config.SkeletonColor
-    })
-    SkeletonColor:OnChanged(function(Value)
-        Config.SkeletonColor = Value
-    end)
-    
-    local SkeletonThickness = SkeletonSection:AddSlider("SkeletonThickness", {
-        Title = "Skeleton Thickness",
-        Default = Config.SkeletonThickness,
-        Min = 1,
-        Max = 5,
-        Rounding = 1
-    })
-    SkeletonThickness:OnChanged(function(Value)
-        Config.SkeletonThickness = Value
-    end)
-end
-
--- Chams Tab
-do
-    local ChamsSection = Tabs.Chams:AddSection("Character Highlighting")
-    
-    local ChamsToggle = ChamsSection:AddToggle("ChamsESP", {
-        Title = "Enable Chams",
-        Description = "Highlight entire character",
-        Default = Config.ChamsESP
-    })
-    ChamsToggle:OnChanged(function()
-        Config.ChamsESP = ChamsToggle.Value
-        UpdateAllHighlights()
-    end)
-    
-    local ChamsColor = ChamsSection:AddColorpicker("ChamsColor", {
-        Title = "Fill Color",
-        Description = "Color of the character fill",
-        Default = Config.ChamsColor
-    })
-    ChamsColor:OnChanged(function(Value)
-        Config.ChamsColor = Value
-        UpdateAllHighlights()
-    end)
-    
-    local ChamsTransparency = ChamsSection:AddSlider("ChamsTransparency", {
-        Title = "Fill Transparency",
-        Description = "0 = Opaque, 1 = Invisible",
-        Default = Config.ChamsTransparency,
-        Min = 0,
-        Max = 1,
-        Rounding = 2
-    })
-    ChamsTransparency:OnChanged(function(Value)
-        Config.ChamsTransparency = Value
-        UpdateAllHighlights()
-    end)
-    
-    local ChamsOutlineColor = ChamsSection:AddColorpicker("ChamsOutlineColor", {
-        Title = "Outline Color",
-        Description = "Color of the outline",
-        Default = Config.ChamsOutlineColor
-    })
-    ChamsOutlineColor:OnChanged(function(Value)
-        Config.ChamsOutlineColor = Value
-        UpdateAllHighlights()
-    end)
-    
-    local ChamsOutlineTransparency = ChamsSection:AddSlider("ChamsOutlineTransparency", {
-        Title = "Outline Transparency",
-        Description = "0 = Opaque, 1 = Invisible",
-        Default = Config.ChamsOutlineTransparency,
-        Min = 0,
-        Max = 1,
-        Rounding = 2
-    })
-    ChamsOutlineTransparency:OnChanged(function(Value)
-        Config.ChamsOutlineTransparency = Value
-        UpdateAllHighlights()
-    end)
-    
-    local ChamsFillMode = ChamsSection:AddDropdown("ChamsFillMode", {
-        Title = "Fill Mode",
-        Description = "What parts of the highlight to show",
-        Values = {"Fill", "Outline", "Both"},
-        Default = Config.ChamsFillMode
-    })
-    ChamsFillMode:OnChanged(function(Value)
-        Config.ChamsFillMode = Value
-        UpdateAllHighlights()
-    end)
-end
-
--- Visuals Tab
-do
-    local ColorsSection = Tabs.Visuals:AddSection("ESP Colors")
-    
-    local EnemyColor = ColorsSection:AddColorpicker("EnemyColor", {
-        Title = "Enemy Color",
-        Default = Config.EnemyColor
-    })
-    EnemyColor:OnChanged(function(Value)
-        Config.EnemyColor = Value
-        Colors.Enemy = Value
-    end)
-    
-    local AllyColor = ColorsSection:AddColorpicker("AllyColor", {
-        Title = "Ally Color",
-        Default = Config.AllyColor
-    })
-    AllyColor:OnChanged(function(Value)
-        Config.AllyColor = Value
-        Colors.Ally = Value
-    end)
-    
-    local HealthColor = ColorsSection:AddColorpicker("HealthColor", {
-        Title = "Health Color",
-        Default = Config.HealthColor
-    })
-    HealthColor:OnChanged(function(Value)
-        Config.HealthColor = Value
-        Colors.Health = Value
-    end)
-    
-    -- Effects Section
-    local EffectsSection = Tabs.Visuals:AddSection("Effects")
-    
-    local RainbowToggle = EffectsSection:AddToggle("RainbowEnabled", {
-        Title = "Rainbow Mode",
-        Default = Config.RainbowEnabled
-    })
-    RainbowToggle:OnChanged(function()
-        Config.RainbowEnabled = RainbowToggle.Value
-    end)
-    
-    local RainbowSpeed = EffectsSection:AddSlider("RainbowSpeed", {
-        Title = "Rainbow Speed",
-        Default = Config.RainbowSpeed,
-        Min = 0.1,
-        Max = 5,
-        Rounding = 1
-    })
-    RainbowSpeed:OnChanged(function(Value)
-        Config.RainbowSpeed = Value
-    end)
-end
-
--- Config Tab
-do
-    SaveManager:SetLibrary(Fluent)
-    InterfaceManager:SetLibrary(Fluent)
-    SaveManager:IgnoreThemeSettings()
-    SaveManager:SetIgnoreIndexes({})
-    InterfaceManager:SetFolder("WAUniversalESP_Chams")
-    SaveManager:SetFolder("WAUniversalESP_Chams/configs")
-    
-    InterfaceManager:BuildInterfaceSection(Tabs.Config)
-    SaveManager:BuildConfigSection(Tabs.Config)
-    
-    local UnloadSection = Tabs.Config:AddSection("Unload")
-    
-    local UnloadButton = UnloadSection:AddButton({
-        Title = "Unload ESP",
-        Description = "Completely remove the ESP",
-        Callback = function()
-            -- Clean up all drawings
-            for _, objects in pairs(ESP_Cache) do
-                if objects.Box then
-                    for _, line in pairs(objects.Box) do
-                        pcall(function() line:Remove() end)
-                    end
-                end
-                if objects.Name then pcall(function() objects.Name:Remove() end) end
-                if objects.Tracer then pcall(function() objects.Tracer:Remove() end) end
-                if objects.HealthBar then
-                    for _, obj in pairs(objects.HealthBar) do
-                        pcall(function() obj:Remove() end)
-                    end
-                end
-                if objects.Skeleton then
-                    for _, line in pairs(objects.Skeleton) do
-                        pcall(function() line:Remove() end)
-                    end
-                end
-            end
-            
-            -- Clean up highlights
-            for _, highlight in pairs(HighlightCache) do
-                pcall(function() highlight:Destroy() end)
-            end
-            
-            ESP_Cache = {}
-            HighlightCache = {}
-            Window:Destroy()
-        end
-    })
-end
-
--- Helper function to update all highlights
-local function UpdateAllHighlights()
-    for player, highlight in pairs(HighlightCache) do
-        if highlight then
-            local character = player.Character
-            if character and Config.Enabled and Config.ChamsESP then
-                -- Check team
-                local isTeam = Config.TeamCheck and player.Team == LocalPlayer.Team
-                if isTeam and not Config.ShowTeam then
-                    highlight.Enabled = false
-                else
-                    highlight.Parent = character
-                    highlight.Enabled = true
-                    
-                    -- Set colors based on mode
-                    if Config.ChamsFillMode == "Fill" then
-                        highlight.FillColor = Config.ChamsColor
-                        highlight.OutlineColor = Config.ChamsColor
-                        highlight.FillTransparency = Config.ChamsTransparency
-                        highlight.OutlineTransparency = 1
-                    elseif Config.ChamsFillMode == "Outline" then
-                        highlight.FillColor = Config.ChamsOutlineColor
-                        highlight.OutlineColor = Config.ChamsOutlineColor
                         highlight.FillTransparency = 1
                         highlight.OutlineTransparency = Config.ChamsOutlineTransparency
                     else -- Both
@@ -492,34 +37,34 @@ end
 -- Built-in Skeleton Drawing Function
 local function DrawSkeleton(character, skeletonDrawings, color, thickness)
     if not character then return end
-    
+
     -- Define bone connections
     local bones = {
         -- Torso to Head
         {"Head", "UpperTorso"},
         {"UpperTorso", "LowerTorso"},
-        
+
         -- Left Arm
         {"UpperTorso", "LeftUpperArm"},
         {"LeftUpperArm", "LeftLowerArm"},
         {"LeftLowerArm", "LeftHand"},
-        
+
         -- Right Arm
         {"UpperTorso", "RightUpperArm"},
         {"RightUpperArm", "RightLowerArm"},
         {"RightLowerArm", "RightHand"},
-        
+
         -- Left Leg
         {"LowerTorso", "LeftUpperLeg"},
         {"LeftUpperLeg", "LeftLowerLeg"},
         {"LeftLowerLeg", "LeftFoot"},
-        
+
         -- Right Leg
         {"LowerTorso", "RightUpperLeg"},
         {"RightUpperLeg", "RightLowerLeg"},
         {"RightLowerLeg", "RightFoot"}
     }
-    
+
     -- Alternative names for R6 compatibility
     local r6Fallback = {
         Head = "Head",
@@ -538,29 +83,29 @@ local function DrawSkeleton(character, skeletonDrawings, color, thickness)
         RightLowerLeg = "Right Leg",
         RightFoot = "Right Leg"
     }
-    
+
     for i, connection in ipairs(bones) do
         local part1Name, part2Name = connection[1], connection[2]
-        
+
         -- Try to find parts (R15 first, then R6 fallback)
         local part1 = character:FindFirstChild(part1Name) or character:FindFirstChild(r6Fallback[part1Name])
         local part2 = character:FindFirstChild(part2Name) or character:FindFirstChild(r6Fallback[part2Name])
-        
+
         if part1 and part2 then
             -- Get positions
             local pos1 = part1.Position
             local pos2 = part2.Position
-            
+
             -- Convert to screen position
             local screen1, onScreen1 = Camera:WorldToViewportPoint(pos1)
             local screen2, onScreen2 = Camera:WorldToViewportPoint(pos2)
-            
+
             if onScreen1 and onScreen2 and screen1.Z > 0 and screen2.Z > 0 then
                 -- Create or update drawing for this bone
                 if not skeletonDrawings[i] then
                     skeletonDrawings[i] = Drawing.new("Line")
                 end
-                
+
                 skeletonDrawings[i].From = Vector2.new(screen1.X, screen1.Y)
                 skeletonDrawings[i].To = Vector2.new(screen2.X, screen2.Y)
                 skeletonDrawings[i].Color = color
@@ -581,7 +126,7 @@ end
 
 local function CreateESP(player)
     if player == LocalPlayer then return end
-    
+
     local objects = {
         -- Box components
         Box = {
@@ -607,14 +152,14 @@ local function CreateESP(player)
         -- Skeleton drawings
         Skeleton = {}
     }
-    
+
     -- Initialize box drawings
     for _, line in pairs(objects.Box) do
         line.Visible = false
         line.Color = Colors.Enemy
         line.Thickness = Config.BoxThickness
     end
-    
+
     -- Initialize name
     objects.Name.Visible = false
     objects.Name.Center = true
@@ -622,29 +167,29 @@ local function CreateESP(player)
     objects.Name.Size = Config.TextSize
     objects.Name.Color = Colors.Enemy
     objects.Name.Font = 2
-    
+
     -- Initialize tracer
     objects.Tracer.Visible = false
     objects.Tracer.Color = Colors.Enemy
     objects.Tracer.Thickness = 1
-    
+
     -- Initialize health bar
     objects.HealthBar.Outline.Visible = false
     objects.HealthBar.Outline.Filled = false
     objects.HealthBar.Outline.Color = Color3.new(0, 0, 0)
     objects.HealthBar.Outline.Thickness = 1
-    
+
     objects.HealthBar.Fill.Visible = false
     objects.HealthBar.Fill.Filled = true
     objects.HealthBar.Fill.Color = Colors.Health
-    
+
     objects.HealthBar.Text.Visible = false
     objects.HealthBar.Text.Center = true
     objects.HealthBar.Text.Size = Config.TextSize
     objects.HealthBar.Text.Font = 2
-    
+
     ESP_Cache[player] = objects
-    
+
     -- Create Highlight for Chams
     local highlight = Instance.new("Highlight")
     highlight.Name = "WAChams_" .. player.Name
@@ -660,34 +205,34 @@ local function RemoveESP(player)
                 pcall(function() line:Remove() end)
             end
         end
-        
+
         -- Remove name
         if ESP_Cache[player].Name then
             pcall(function() ESP_Cache[player].Name:Remove() end)
         end
-        
+
         -- Remove tracer
         if ESP_Cache[player].Tracer then
             pcall(function() ESP_Cache[player].Tracer:Remove() end)
         end
-        
+
         -- Remove health bar
         if ESP_Cache[player].HealthBar then
             for _, obj in pairs(ESP_Cache[player].HealthBar) do
                 pcall(function() obj:Remove() end)
             end
         end
-        
+
         -- Remove skeleton lines
         if ESP_Cache[player].Skeleton then
             for _, line in pairs(ESP_Cache[player].Skeleton) do
                 pcall(function() line:Remove() end)
             end
         end
-        
+
         ESP_Cache[player] = nil
     end
-    
+
     -- Remove highlight
     if HighlightCache[player] then
         pcall(function() HighlightCache[player]:Destroy() end)
@@ -697,14 +242,14 @@ end
 
 local function UpdateESP(player)
     if not Config.Enabled then return end
-    
+
     local objects = ESP_Cache[player]
     if not objects then
         CreateESP(player)
         objects = ESP_Cache[player]
     end
     if not objects then return end
-    
+
     local character = player.Character
     if not character then
         -- Hide everything if no character
@@ -721,10 +266,10 @@ local function UpdateESP(player)
         end
         return
     end
-    
+
     local rootPart = character:FindFirstChild("HumanoidRootPart") or character:FindFirstChild("Torso")
     local humanoid = character:FindFirstChild("Humanoid")
-    
+
     if not rootPart or not humanoid or humanoid.Health <= 0 then
         if objects.Box then
             for _, line in pairs(objects.Box) do line.Visible = false end
@@ -739,11 +284,11 @@ local function UpdateESP(player)
         end
         return
     end
-    
+
     -- Get screen position
     local pos, onScreen = Camera:WorldToViewportPoint(rootPart.Position)
     local distance = (rootPart.Position - Camera.CFrame.Position).Magnitude
-    
+
     if not onScreen or distance > Config.MaxDistance then
         if objects.Box then
             for _, line in pairs(objects.Box) do line.Visible = false end
@@ -758,7 +303,7 @@ local function UpdateESP(player)
         end
         return
     end
-    
+
     -- Team check
     local isTeam = Config.TeamCheck and player.Team == LocalPlayer.Team
     if isTeam and not Config.ShowTeam then
@@ -775,109 +320,109 @@ local function UpdateESP(player)
         end
         return
     end
-    
+
     local color = GetPlayerColor(player)
-    
+
     -- Calculate box dimensions
     local size = character:GetExtentsSize()
     local cf = rootPart.CFrame
-    
+
     local top, _ = Camera:WorldToViewportPoint(cf * CFrame.new(0, size.Y/2, 0).Position)
     local bottom, _ = Camera:WorldToViewportPoint(cf * CFrame.new(0, -size.Y/2, 0).Position)
-    
+
     local screenHeight = math.abs(bottom.Y - top.Y)
     local boxWidth = screenHeight * 0.65
     local boxPos = Vector2.new(top.X - boxWidth/2, top.Y)
     local boxSize = Vector2.new(boxWidth, screenHeight)
-    
+
     -- Box ESP
     if Config.BoxESP then
         -- Hide all box lines first
         for _, line in pairs(objects.Box) do
             line.Visible = false
         end
-        
+
         if Config.BoxStyle == "Full" then
             if objects.Box.Left then
                 objects.Box.Left.From = boxPos
                 objects.Box.Left.To = boxPos + Vector2.new(0, boxSize.Y)
                 objects.Box.Left.Visible = true
             end
-            
+
             if objects.Box.Right then
                 objects.Box.Right.From = boxPos + Vector2.new(boxSize.X, 0)
                 objects.Box.Right.To = boxPos + Vector2.new(boxSize.X, boxSize.Y)
                 objects.Box.Right.Visible = true
             end
-            
+
             if objects.Box.Top then
                 objects.Box.Top.From = boxPos
                 objects.Box.Top.To = boxPos + Vector2.new(boxSize.X, 0)
                 objects.Box.Top.Visible = true
             end
-            
+
             if objects.Box.Bottom then
                 objects.Box.Bottom.From = boxPos + Vector2.new(0, boxSize.Y)
                 objects.Box.Bottom.To = boxPos + Vector2.new(boxSize.X, boxSize.Y)
                 objects.Box.Bottom.Visible = true
             end
-            
+
         elseif Config.BoxStyle == "Corner" then
             local cornerSize = math.min(boxWidth * 0.2, 20)
-            
+
             -- Top left corner
             if objects.Box.TopLeft then
                 objects.Box.TopLeft.From = boxPos
                 objects.Box.TopLeft.To = boxPos + Vector2.new(cornerSize, 0)
                 objects.Box.TopLeft.Visible = true
             end
-            
+
             if objects.Box.Left then
                 objects.Box.Left.From = boxPos
                 objects.Box.Left.To = boxPos + Vector2.new(0, cornerSize)
                 objects.Box.Left.Visible = true
             end
-            
+
             -- Top right corner
             if objects.Box.TopRight then
                 objects.Box.TopRight.From = boxPos + Vector2.new(boxSize.X, 0)
                 objects.Box.TopRight.To = boxPos + Vector2.new(boxSize.X - cornerSize, 0)
                 objects.Box.TopRight.Visible = true
             end
-            
+
             if objects.Box.Right then
                 objects.Box.Right.From = boxPos + Vector2.new(boxSize.X, 0)
                 objects.Box.Right.To = boxPos + Vector2.new(boxSize.X, cornerSize)
                 objects.Box.Right.Visible = true
             end
-            
+
             -- Bottom left corner
             if objects.Box.BottomLeft then
                 objects.Box.BottomLeft.From = boxPos + Vector2.new(0, boxSize.Y)
                 objects.Box.BottomLeft.To = boxPos + Vector2.new(cornerSize, boxSize.Y)
                 objects.Box.BottomLeft.Visible = true
             end
-            
+
             if objects.Box.Bottom then
                 objects.Box.Bottom.From = boxPos + Vector2.new(0, boxSize.Y)
                 objects.Box.Bottom.To = boxPos + Vector2.new(0, boxSize.Y - cornerSize)
                 objects.Box.Bottom.Visible = true
             end
-            
+
             -- Bottom right corner
             if objects.Box.BottomRight then
                 objects.Box.BottomRight.From = boxPos + Vector2.new(boxSize.X, boxSize.Y)
                 objects.Box.BottomRight.To = boxPos + Vector2.new(boxSize.X - cornerSize, boxSize.Y)
                 objects.Box.BottomRight.Visible = true
             end
-            
+
             if objects.Box.Top then
                 objects.Box.Top.From = boxPos + Vector2.new(boxSize.X, boxSize.Y)
                 objects.Box.Top.To = boxPos + Vector2.new(boxSize.X, boxSize.Y - cornerSize)
                 objects.Box.Top.Visible = true
             end
         end
-        
+
         -- Update colors and thickness
         for _, line in pairs(objects.Box) do
             if line and line.Visible then
@@ -892,7 +437,7 @@ local function UpdateESP(player)
             end
         end
     end
-    
+
     -- Name ESP
     if Config.NameESP and objects.Name then
         objects.Name.Text = player.Name .. " [" .. math.floor(distance) .. " studs]"
@@ -903,7 +448,7 @@ local function UpdateESP(player)
     else
         if objects.Name then objects.Name.Visible = false end
     end
-    
+
     -- Tracer ESP
     if Config.TracerESP and objects.Tracer then
         objects.Tracer.From = GetTracerOrigin()
@@ -913,24 +458,24 @@ local function UpdateESP(player)
     else
         if objects.Tracer then objects.Tracer.Visible = false end
     end
-    
+
     -- Health ESP
     if Config.HealthESP and objects.HealthBar then
         local health = humanoid.Health
         local maxHealth = humanoid.MaxHealth
         local healthPercent = math.max(0, math.min(1, health / maxHealth))
-        
+
         local barHeight = screenHeight * 0.8
         local barWidth = 4
         local barPos = Vector2.new(boxPos.X - barWidth - 2, boxPos.Y + (screenHeight - barHeight)/2)
-        
+
         -- Health bar
         if objects.HealthBar.Outline then
             objects.HealthBar.Outline.Size = Vector2.new(barWidth, barHeight)
             objects.HealthBar.Outline.Position = barPos
             objects.HealthBar.Outline.Visible = true
         end
-        
+
         if objects.HealthBar.Fill then
             objects.HealthBar.Fill.Size = Vector2.new(barWidth - 2, barHeight * healthPercent)
             objects.HealthBar.Fill.Position = Vector2.new(barPos.X + 1, barPos.Y + barHeight * (1 - healthPercent))
@@ -941,7 +486,7 @@ local function UpdateESP(player)
             )
             objects.HealthBar.Fill.Visible = true
         end
-        
+
         -- Health text
         if (Config.HealthStyle == "Text" or Config.HealthStyle == "Both") and objects.HealthBar.Text then
             objects.HealthBar.Text.Text = math.floor(health) .. "/" .. math.floor(maxHealth) .. " HP"
@@ -959,7 +504,7 @@ local function UpdateESP(player)
             if objects.HealthBar.Text then objects.HealthBar.Text.Visible = false end
         end
     end
-    
+
     -- Skeleton ESP
     if Config.SkeletonESP and character then
         local skeletonColor = Config.RainbowEnabled and Colors.Rainbow or Config.SkeletonColor
@@ -971,7 +516,7 @@ local function UpdateESP(player)
             end
         end
     end
-    
+
     -- Update Chams
     UpdateAllHighlights()
 end
