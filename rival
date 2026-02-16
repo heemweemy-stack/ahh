@@ -12,47 +12,6 @@ local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/
 local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
 local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
 
--- Load Aimbot
-local Aimbot = loadstring(game:HttpGet("https://raw.githubusercontent.com/Exunys/Aimbot-V3/main/src/Aimbot.lua"))()
-Aimbot.Load() -- Initialize the aimbot
-
--- Configure Aimbot settings
-getgenv().ExunysDeveloperAimbot = {
-    DeveloperSettings = {
-        UpdateMode = "RenderStepped",
-        TeamCheckOption = "TeamColor",
-        RainbowSpeed = 1
-    },
-    Settings = {
-        Enabled = false, -- Start disabled
-        TeamCheck = false,
-        AliveCheck = true,
-        WallCheck = false,
-        OffsetToMoveDirection = false,
-        OffsetIncrement = 15,
-        Sensitivity = 0,
-        Sensitivity2 = 3,
-        LockMode = 1,
-        LockPart = "Head",
-        TriggerKey = Enum.UserInputType.MouseButton2,
-        Toggle = false
-    },
-    FOVSettings = {
-        Enabled = true,
-        Visible = true,
-        Radius = 90,
-        NumSides = 60,
-        Thickness = 1,
-        Transparency = 1,
-        Filled = false,
-        RainbowColor = false,
-        RainbowOutlineColor = false,
-        Color = Color3.fromRGB(255, 255, 255),
-        OutlineColor = Color3.fromRGB(0, 0, 0),
-        LockedColor = Color3.fromRGB(255, 150, 150)
-    }
-}
-
 -- Drawing Cache
 local ESP_Cache = {}
 local ChamsCache = {}
