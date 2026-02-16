@@ -1,8 +1,9 @@
--- WA Universal ESP with Chams, Skeletons & Aimbot (COMPLETELY FIXED)
+-- WA Universal ESP with Chams, Skeletons & Aimbot (FIXED)
 -- Services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
+local CoreGui = game:GetService("CoreGui")
 local Camera = workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
 
@@ -13,9 +14,9 @@ local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.
 
 -- Load Aimbot
 local Aimbot = loadstring(game:HttpGet("https://raw.githubusercontent.com/Exunys/Aimbot-V3/main/src/Aimbot.lua"))()
-Aimbot.Load()
+Aimbot.Load() -- Initialize the aimbot
 
--- Initialize aimbot settings
+-- Configure Aimbot settings
 getgenv().ExunysDeveloperAimbot = {
     DeveloperSettings = {
         UpdateMode = "RenderStepped",
@@ -23,7 +24,7 @@ getgenv().ExunysDeveloperAimbot = {
         RainbowSpeed = 1
     },
     Settings = {
-        Enabled = false,
+        Enabled = false, -- Start disabled
         TeamCheck = false,
         AliveCheck = true,
         WallCheck = false,
@@ -51,10 +52,6 @@ getgenv().ExunysDeveloperAimbot = {
         LockedColor = Color3.fromRGB(255, 150, 150)
     }
 }
-
--- Force aimbot to use these settings
-Aimbot.Settings = getgenv().ExunysDeveloperAimbot.Settings
-Aimbot.FOVSettings = getgenv().ExunysDeveloperAimbot.FOVSettings
 
 -- Drawing Cache
 local ESP_Cache = {}
@@ -103,7 +100,7 @@ local Config = {
     ChamsTransparency = 0.5,
 }
 
--- Colors table
+-- Colors table for dynamic updates
 local Colors = {
     Enemy = Config.EnemyColor,
     Ally = Config.AllyColor,
@@ -111,10 +108,10 @@ local Colors = {
     Rainbow = nil
 }
 
--- UI Setup
+-- UI Setup with Fluent
 local Window = Fluent:CreateWindow({
     Title = "WA Universal ESP",
-    SubTitle = "Fully Loaded",
+    SubTitle = "with Chams, Skeletons & Aimbot",
     TabWidth = 160,
     Size = UDim2.fromOffset(580, 460),
     Acrylic = false,
@@ -150,6 +147,7 @@ do
     })
     TeamCheckToggle:OnChanged(function()
         Config.TeamCheck = TeamCheckToggle.Value
+        -- Update aimbot team check
         getgenv().ExunysDeveloperAimbot.Settings.TeamCheck = Config.TeamCheck
     end)
     
@@ -175,7 +173,7 @@ end
 
 -- ESP Tab
 do
-    -- Box ESP
+    -- Box ESP Section
     local BoxSection = Tabs.ESP:AddSection("Box ESP")
     
     local BoxESPToggle = BoxSection:AddToggle("BoxESP", {
@@ -206,7 +204,7 @@ do
         Config.BoxThickness = Value
     end)
     
-    -- Name ESP
+    -- Name ESP Section
     local NameSection = Tabs.ESP:AddSection("Name ESP")
     
     local NameESPToggle = NameSection:AddToggle("NameESP", {
@@ -228,7 +226,7 @@ do
         Config.TextSize = Value
     end)
     
-    -- Health ESP
+    -- Health ESP Section
     local HealthSection = Tabs.ESP:AddSection("Health ESP")
     
     local HealthESPToggle = HealthSection:AddToggle("HealthESP", {
@@ -248,7 +246,7 @@ do
         Config.HealthStyle = Value
     end)
     
-    -- Tracer ESP
+    -- Tracer Section
     local TracerSection = Tabs.ESP:AddSection("Tracers")
     
     local TracerESPToggle = TracerSection:AddToggle("TracerESP", {
@@ -268,7 +266,7 @@ do
         Config.TracerOrigin = Value
     end)
     
-    -- Skeleton ESP
+    -- Skeleton Section
     local SkeletonSection = Tabs.ESP:AddSection("Skeleton ESP")
     
     local SkeletonESPToggle = SkeletonSection:AddToggle("SkeletonESP", {
@@ -305,6 +303,7 @@ do
     
     local ChamsToggle = ChamsSection:AddToggle("ChamsESP", {
         Title = "Enable Chams",
+        Description = "Highlight entire character",
         Default = Config.ChamsESP
     })
     ChamsToggle:OnChanged(function()
@@ -313,6 +312,7 @@ do
     
     local ChamsColor = ChamsSection:AddColorpicker("ChamsColor", {
         Title = "Chams Color",
+        Description = "Color of the character highlight",
         Default = Config.ChamsColor
     })
     ChamsColor:OnChanged(function(Value)
@@ -321,6 +321,7 @@ do
     
     local ChamsTransparency = ChamsSection:AddSlider("ChamsTransparency", {
         Title = "Chams Transparency",
+        Description = "0 = Opaque, 1 = Invisible",
         Default = Config.ChamsTransparency,
         Min = 0,
         Max = 1,
@@ -331,7 +332,7 @@ do
     end)
 end
 
--- Aimbot Tab (FULLY FIXED)
+-- Aimbot Tab
 do
     local AimbotSection = Tabs.Aimbot:AddSection("Aimbot Controls")
     
@@ -349,28 +350,30 @@ do
     
     local KeyDropdown = KeySection:AddDropdown("TriggerKey", {
         Title = "Aimbot Key",
-        Values = {"MouseButton1", "MouseButton2", "MouseButton3", "MouseButton4", "MouseButton5", "LeftControl", "LeftShift", "E", "Q", "F"},
+        Values = {"MouseButton2", "MouseButton1", "LeftControl", "LeftShift", "E", "Q", "F", "V", "C", "X", "Z"},
         Default = "MouseButton2",
         Multi = false
     })
     KeyDropdown:OnChanged(function(Value)
         local keyMap = {
-            MouseButton1 = Enum.UserInputType.MouseButton1,
             MouseButton2 = Enum.UserInputType.MouseButton2,
-            MouseButton3 = Enum.UserInputType.MouseButton3,
-            MouseButton4 = Enum.UserInputType.MouseButton4,
-            MouseButton5 = Enum.UserInputType.MouseButton5,
+            MouseButton1 = Enum.UserInputType.MouseButton1,
             LeftControl = Enum.KeyCode.LeftControl,
             LeftShift = Enum.KeyCode.LeftShift,
             E = Enum.KeyCode.E,
             Q = Enum.KeyCode.Q,
-            F = Enum.KeyCode.F
+            F = Enum.KeyCode.F,
+            V = Enum.KeyCode.V,
+            C = Enum.KeyCode.C,
+            X = Enum.KeyCode.X,
+            Z = Enum.KeyCode.Z
         }
         getgenv().ExunysDeveloperAimbot.Settings.TriggerKey = keyMap[Value]
     end)
     
     local ToggleMode = KeySection:AddToggle("ToggleMode", {
         Title = "Toggle Mode",
+        Description = "Click once to toggle on/off",
         Default = false
     })
     ToggleMode:OnChanged(function(Value)
@@ -379,6 +382,14 @@ do
     
     -- FOV Settings
     local FOVSection = Tabs.Aimbot:AddSection("FOV Settings")
+    
+    local FOVEnabled = FOVSection:AddToggle("FOVEnabled", {
+        Title = "Enable FOV",
+        Default = true
+    })
+    FOVEnabled:OnChanged(function(Value)
+        getgenv().ExunysDeveloperAimbot.FOVSettings.Enabled = Value
+    end)
     
     local FOVVisible = FOVSection:AddToggle("FOVVisible", {
         Title = "Show FOV Circle",
@@ -407,6 +418,28 @@ do
         getgenv().ExunysDeveloperAimbot.FOVSettings.Color = Value
     end)
     
+    local FOVThickness = FOVSection:AddSlider("FOVThickness", {
+        Title = "FOV Thickness",
+        Default = 1,
+        Min = 1,
+        Max = 5,
+        Rounding = 1
+    })
+    FOVThickness:OnChanged(function(Value)
+        getgenv().ExunysDeveloperAimbot.FOVSettings.Thickness = Value
+    end)
+    
+    local FOVTransparency = FOVSection:AddSlider("FOVTransparency", {
+        Title = "FOV Transparency",
+        Default = 1,
+        Min = 0,
+        Max = 1,
+        Rounding = 2
+    })
+    FOVTransparency:OnChanged(function(Value)
+        getgenv().ExunysDeveloperAimbot.FOVSettings.Transparency = Value
+    end)
+    
     -- Lock Settings
     local LockSection = Tabs.Aimbot:AddSection("Lock Settings")
     
@@ -422,6 +455,7 @@ do
     
     local WallCheck = LockSection:AddToggle("WallCheck", {
         Title = "Wall Check",
+        Description = "Don't lock through walls",
         Default = false
     })
     WallCheck:OnChanged(function(Value)
@@ -471,7 +505,7 @@ do
         Colors.Health = Value
     end)
     
-    -- Effects
+    -- Effects Section
     local EffectsSection = Tabs.Visuals:AddSection("Effects")
     
     local RainbowToggle = EffectsSection:AddToggle("RainbowEnabled", {
@@ -501,8 +535,8 @@ do
     InterfaceManager:SetLibrary(Fluent)
     SaveManager:IgnoreThemeSettings()
     SaveManager:SetIgnoreIndexes({})
-    InterfaceManager:SetFolder("WAUniversalESP_Fixed")
-    SaveManager:SetFolder("WAUniversalESP_Fixed/configs")
+    InterfaceManager:SetFolder("WAUniversalESP_Complete")
+    SaveManager:SetFolder("WAUniversalESP_Complete/configs")
     
     InterfaceManager:BuildInterfaceSection(Tabs.Config)
     SaveManager:BuildConfigSection(Tabs.Config)
@@ -510,24 +544,38 @@ do
     local UnloadSection = Tabs.Config:AddSection("Unload")
     
     local UnloadButton = UnloadSection:AddButton({
-        Title = "Unload",
-        Description = "Remove ESP and Aimbot",
+        Title = "Unload ESP",
+        Description = "Completely remove the ESP",
         Callback = function()
+            -- Clean up all drawings
             for _, objects in pairs(ESP_Cache) do
-                for _, obj in pairs(objects) do
-                    if type(obj) == "table" then
-                        for _, subObj in pairs(obj) do
-                            pcall(function() subObj:Remove() end)
-                        end
-                    else
+                if objects.Box then
+                    for _, line in pairs(objects.Box) do
+                        pcall(function() line:Remove() end)
+                    end
+                end
+                if objects.Name then pcall(function() objects.Name:Remove() end) end
+                if objects.Tracer then pcall(function() objects.Tracer:Remove() end) end
+                if objects.HealthBar then
+                    for _, obj in pairs(objects.HealthBar) do
                         pcall(function() obj:Remove() end)
                     end
                 end
+                if objects.Skeleton then
+                    for _, line in pairs(objects.Skeleton) do
+                        pcall(function() line:Remove() end)
+                    end
+                end
             end
+            
+            -- Clean up chams
             for _, highlight in pairs(ChamsCache) do
                 pcall(function() highlight:Destroy() end)
             end
+            
+            -- Unload aimbot
             pcall(function() Aimbot:Exit() end)
+            
             ESP_Cache = {}
             ChamsCache = {}
             Window:Destroy()
@@ -654,7 +702,7 @@ local function CreateESP(player)
     
     ESP_Cache[player] = objects
     
-    -- Chams highlight
+    -- Create chams highlight
     local highlight = Instance.new("Highlight")
     highlight.Name = "Chams_" .. player.Name
     highlight.FillColor = Config.ChamsColor
@@ -939,7 +987,7 @@ end)
 Players.PlayerAdded:Connect(CreateESP)
 Players.PlayerRemoving:Connect(RemoveESP)
 
--- Initialize
+-- Initialize for existing players
 for _, player in pairs(Players:GetPlayers()) do
     if player ~= LocalPlayer then
         CreateESP(player)
@@ -954,14 +1002,14 @@ UserInputService.InputBegan:Connect(function(input)
     end
 end)
 
--- Start
+-- Initial setup
 Window:SelectTab(1)
 Window:SetVisibility(true)
 
 Fluent:Notify({
     Title = "WA Universal ESP",
-    Content = "Fully Loaded! Press Insert for menu.",
+    Content = "Loaded with Chams, Skeletons & Aimbot! Press Insert for menu.",
     Duration = 5
 })
 
-print("WA Universal ESP Fully Loaded")
+print("WA Universal ESP with Chams, Skeletons & Aimbot Loaded")
