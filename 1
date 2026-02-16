@@ -1,4 +1,4 @@
--- WA Universal ESP with Built-in Working Skeletons (Thicker Version)
+-- WA Universal ESP with Chams, Skeletons & Aimbot
 -- Services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -12,8 +12,12 @@ local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/
 local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
 local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
 
+-- Load Aimbot
+local Aimbot = loadstring(game:HttpGet("https://raw.githubusercontent.com/Exunys/Aimbot-V3/main/src/Aimbot.lua"))()
+
 -- Drawing Cache
 local ESP_Cache = {}
+local ChamsCache = {} -- Store chams models and highlights
 
 -- Configuration
 local Config = {
@@ -27,6 +31,10 @@ local Config = {
     HealthESP = false,
     TracerESP = false,
     SkeletonESP = false,
+    ChamsESP = false,
+    
+    -- Aimbot Toggles
+    AimbotEnabled = false,
     
     -- Settings
     TeamCheck = false,
@@ -47,7 +55,14 @@ local Config = {
     AllyColor = Color3.fromRGB(25, 255, 25),
     HealthColor = Color3.fromRGB(0, 255, 0),
     SkeletonColor = Color3.fromRGB(255, 255, 255),
-    SkeletonThickness = 3, -- Increased from 2 to 3 for thicker default
+    SkeletonThickness = 3,
+    
+    -- Chams Settings
+    ChamsVisibleColor = Color3.fromRGB(255, 0, 0), -- Color when visible (line of sight)
+    ChamsVisibleTransparency = 0.3,
+    ChamsOccludedColor = Color3.fromRGB(0, 0, 255), -- Color when behind walls
+    ChamsOccludedTransparency = 0,
+    ChamsOutlineTransparency = 1, -- Hide outlines by default
 }
 
 -- Colors table for dynamic updates
@@ -61,7 +76,7 @@ local Colors = {
 -- UI Setup with Fluent
 local Window = Fluent:CreateWindow({
     Title = "WA Universal ESP",
-    SubTitle = "with Thick Skeletons",
+    SubTitle = "with Chams, Skeletons & Aimbot",
     TabWidth = 160,
     Size = UDim2.fromOffset(580, 460),
     Acrylic = false,
@@ -73,7 +88,9 @@ local Window = Fluent:CreateWindow({
 local Tabs = {
     Main = Window:AddTab({ Title = "Main", Icon = "home" }),
     ESP = Window:AddTab({ Title = "ESP", Icon = "eye" }),
-    Visuals = Window:AddTab({ Title = "Visuals", Icon = "palette" }),
+    Chams = Window:AddTab({ Title = "Chams", Icon = "palette" }),
+    Aimbot = Window:AddTab({ Title = "Aimbot", Icon = "target" }),
+    Visuals = Window:AddTab({ Title = "Visuals", Icon = "brush" }),
     Config = Window:AddTab({ Title = "Config", Icon = "save" })
 }
 
@@ -212,7 +229,7 @@ do
         Config.TracerOrigin = Value
     end)
     
-    -- Skeleton Section (UPDATED with thicker range)
+    -- Skeleton Section
     local SkeletonSection = Tabs.ESP:AddSection("Skeleton ESP")
     
     local SkeletonESPToggle = SkeletonSection:AddToggle("SkeletonESP", {
@@ -235,7 +252,7 @@ do
         Title = "Skeleton Thickness",
         Default = Config.SkeletonThickness,
         Min = 1,
-        Max = 8, -- Increased max to 8 for thicker options
+        Max = 8,
         Rounding = 1
     })
     SkeletonThickness:OnChanged(function(Value)
@@ -243,9 +260,190 @@ do
     end)
 end
 
+-- Chams Tab
+do
+    local ChamsSection = Tabs.Chams:AddSection("Character Highlighting (Chams)")
+    
+    local ChamsToggle = ChamsSection:AddToggle("ChamsESP", {
+        Title = "Enable Chams",
+        Description = "Highlight entire character with dual-color effect",
+        Default = Config.ChamsESP
+    })
+    ChamsToggle:OnChanged(function()
+        Config.ChamsESP = ChamsToggle.Value
+        UpdateAllChams()
+    end)
+    
+    -- Visible (Line of Sight) Settings
+    local VisibleSection = Tabs.Chams:AddSection("Visible (Line of Sight)")
+    
+    local ChamsVisibleColor = VisibleSection:AddColorpicker("ChamsVisibleColor", {
+        Title = "Visible Color",
+        Description = "Color when player is in line of sight",
+        Default = Config.ChamsVisibleColor
+    })
+    ChamsVisibleColor:OnChanged(function(Value)
+        Config.ChamsVisibleColor = Value
+        UpdateAllChams()
+    end)
+    
+    local ChamsVisibleTransparency = VisibleSection:AddSlider("ChamsVisibleTransparency", {
+        Title = "Visible Transparency",
+        Description = "0 = Opaque, 1 = Invisible",
+        Default = Config.ChamsVisibleTransparency,
+        Min = 0,
+        Max = 1,
+        Rounding = 2
+    })
+    ChamsVisibleTransparency:OnChanged(function(Value)
+        Config.ChamsVisibleTransparency = Value
+        UpdateAllChams()
+    end)
+    
+    -- Occluded (Behind Walls) Settings
+    local OccludedSection = Tabs.Chams:AddSection("Occluded (Behind Walls)")
+    
+    local ChamsOccludedColor = OccludedSection:AddColorpicker("ChamsOccludedColor", {
+        Title = "Occluded Color",
+        Description = "Color when player is behind walls",
+        Default = Config.ChamsOccludedColor
+    })
+    ChamsOccludedColor:OnChanged(function(Value)
+        Config.ChamsOccludedColor = Value
+        UpdateAllChams()
+    end)
+    
+    local ChamsOccludedTransparency = OccludedSection:AddSlider("ChamsOccludedTransparency", {
+        Title = "Occluded Transparency",
+        Description = "0 = Opaque, 1 = Invisible",
+        Default = Config.ChamsOccludedTransparency,
+        Min = 0,
+        Max = 1,
+        Rounding = 2
+    })
+    ChamsOccludedTransparency:OnChanged(function(Value)
+        Config.ChamsOccludedTransparency = Value
+        UpdateAllChams()
+    end)
+    
+    local ChamsOutlineTransparency = OccludedSection:AddSlider("ChamsOutlineTransparency", {
+        Title = "Outline Transparency",
+        Description = "1 = Hide outlines",
+        Default = Config.ChamsOutlineTransparency,
+        Min = 0,
+        Max = 1,
+        Rounding = 2
+    })
+    ChamsOutlineTransparency:OnChanged(function(Value)
+        Config.ChamsOutlineTransparency = Value
+        UpdateAllChams()
+    end)
+end
+
+-- Aimbot Tab
+do
+    local AimbotSection = Tabs.Aimbot:AddSection("Aimbot Controls")
+    
+    local AimbotToggle = AimbotSection:AddToggle("AimbotEnabled", {
+        Title = "Enable Aimbot",
+        Default = Config.AimbotEnabled
+    })
+    AimbotToggle:OnChanged(function()
+        Config.AimbotEnabled = AimbotToggle.Value
+        Aimbot.Settings.AimbotEnabled = Config.AimbotEnabled
+    end)
+    
+    -- Aimbot Settings
+    local SettingsSection = Tabs.Aimbot:AddSection("Settings")
+    
+    local TeamCheckAimbot = SettingsSection:AddToggle("TeamCheckAimbot", {
+        Title = "Team Check",
+        Default = false
+    })
+    TeamCheckAimbot:OnChanged(function()
+        Aimbot.Settings.TeamCheck = TeamCheckAimbot.Value
+    end)
+    
+    local Sensitivity = SettingsSection:AddSlider("Sensitivity", {
+        Title = "Sensitivity",
+        Default = 0,
+        Min = 0,
+        Max = 1,
+        Rounding = 2
+    })
+    Sensitivity:OnChanged(function(Value)
+        Aimbot.Settings.Sensitivity = Value
+    end)
+    
+    -- Trigger Key
+    local KeySection = Tabs.Aimbot:AddSection("Trigger Key")
+    
+    local KeyDropdown = KeySection:AddDropdown("TriggerKey", {
+        Title = "Aimbot Key",
+        Values = {"MouseButton2", "MouseButton1", "LeftControl", "LeftShift", "E", "Q", "F", "V", "C", "X", "Z"},
+        Default = "MouseButton2",
+        Multi = false
+    })
+    KeyDropdown:OnChanged(function(Value)
+        Aimbot.Settings.Key = Value
+    end)
+    
+    -- FOV Settings
+    local FOVSection = Tabs.Aimbot:AddSection("FOV Settings")
+    
+    local FOVSize = FOVSection:AddSlider("FOVSize", {
+        Title = "FOV Size",
+        Default = 90,
+        Min = 10,
+        Max = 360,
+        Rounding = 0
+    })
+    FOVSize:OnChanged(function(Value)
+        Aimbot.Settings.FOVRadius = Value
+    end)
+    
+    local FOVVisible = FOVSection:AddToggle("FOVVisible", {
+        Title = "Show FOV Circle",
+        Default = true
+    })
+    FOVVisible:OnChanged(function(Value)
+        Aimbot.Settings.FOVVisible = Value
+    end)
+    
+    local FOVColor = FOVSection:AddColorpicker("FOVColor", {
+        Title = "FOV Circle Color",
+        Default = Color3.fromRGB(255, 255, 255)
+    })
+    FOVColor:OnChanged(function(Value)
+        Aimbot.Settings.FOVColor = Value
+    end)
+    
+    local FOVSides = FOVSection:AddSlider("FOVSides", {
+        Title = "FOV Circle Quality",
+        Default = 60,
+        Min = 3,
+        Max = 100,
+        Rounding = 0
+    })
+    FOVSides:OnChanged(function(Value)
+        Aimbot.Settings.FOVSides = Value
+    end)
+    
+    local FOVTransparency = FOVSection:AddSlider("FOVTransparency", {
+        Title = "FOV Transparency",
+        Default = 0.5,
+        Min = 0,
+        Max = 1,
+        Rounding = 2
+    })
+    FOVTransparency:OnChanged(function(Value)
+        Aimbot.Settings.FOVTransparency = Value
+    end)
+end
+
 -- Visuals Tab
 do
-    local ColorsSection = Tabs.Visuals:AddSection("Colors")
+    local ColorsSection = Tabs.Visuals:AddSection("ESP Colors")
     
     local EnemyColor = ColorsSection:AddColorpicker("EnemyColor", {
         Title = "Enemy Color",
@@ -303,8 +501,8 @@ do
     InterfaceManager:SetLibrary(Fluent)
     SaveManager:IgnoreThemeSettings()
     SaveManager:SetIgnoreIndexes({})
-    InterfaceManager:SetFolder("WAUniversalESP_BuiltIn")
-    SaveManager:SetFolder("WAUniversalESP_BuiltIn/configs")
+    InterfaceManager:SetFolder("WAUniversalESP_Complete")
+    SaveManager:SetFolder("WAUniversalESP_Complete/configs")
     
     InterfaceManager:BuildInterfaceSection(Tabs.Config)
     SaveManager:BuildConfigSection(Tabs.Config)
@@ -335,10 +533,143 @@ do
                     end
                 end
             end
+            
+            -- Clean up chams
+            for _, chamsData in pairs(ChamsCache) do
+                if chamsData.Model then pcall(function() chamsData.Model:Destroy() end) end
+                if chamsData.LosHighlight then pcall(function() chamsData.LosHighlight:Destroy() end) end
+                if chamsData.OccHighlight then pcall(function() chamsData.OccHighlight:Destroy() end) end
+            end
+            
             ESP_Cache = {}
+            ChamsCache = {}
             Window:Destroy()
         end
     })
+end
+
+-- Chams Creation Function
+local function CreateChams(player)
+    if player == LocalPlayer then return end
+    
+    -- Remove existing chams if any
+    if ChamsCache[player] then
+        if ChamsCache[player].Model then pcall(function() ChamsCache[player].Model:Destroy() end) end
+        if ChamsCache[player].LosHighlight then pcall(function() ChamsCache[player].LosHighlight:Destroy() end) end
+        if ChamsCache[player].OccHighlight then pcall(function() ChamsCache[player].OccHighlight:Destroy() end) end
+    end
+    
+    -- Create chams model
+    local chamsModel = Instance.new("Model")
+    chamsModel.Name = "Chams_" .. player.Name
+    chamsModel.Parent = workspace
+    
+    -- Create the line-of-sight highlight (on actual character)
+    local losHighlight = Instance.new("Highlight")
+    losHighlight.Name = "LosHighlight_" .. player.Name
+    losHighlight.DepthMode = Enum.HighlightDepthMode.Occluded
+    losHighlight.FillColor = Config.ChamsVisibleColor
+    losHighlight.FillTransparency = Config.ChamsVisibleTransparency
+    losHighlight.OutlineTransparency = Config.ChamsOutlineTransparency
+    
+    -- Create the occlusion highlight (on chams model)
+    local occHighlight = Instance.new("Highlight")
+    occHighlight.Name = "OccHighlight_" .. player.Name
+    occHighlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    occHighlight.FillColor = Config.ChamsOccludedColor
+    occHighlight.FillTransparency = Config.ChamsOccludedTransparency
+    occHighlight.OutlineTransparency = Config.ChamsOutlineTransparency
+    
+    ChamsCache[player] = {
+        Model = chamsModel,
+        LosHighlight = losHighlight,
+        OccHighlight = occHighlight
+    }
+end
+
+-- Update Chams for a player
+local function UpdatePlayerChams(player)
+    if not Config.ChamsESP or not Config.Enabled then
+        -- Hide chams if disabled
+        if ChamsCache[player] then
+            if ChamsCache[player].LosHighlight then
+                ChamsCache[player].LosHighlight.Parent = nil
+            end
+            if ChamsCache[player].OccHighlight then
+                ChamsCache[player].OccHighlight.Parent = nil
+            end
+        end
+        return
+    end
+    
+    local character = player.Character
+    if not character then return end
+    
+    -- Team check
+    local isTeam = Config.TeamCheck and player.Team == LocalPlayer.Team
+    if isTeam and not Config.ShowTeam then
+        if ChamsCache[player] then
+            if ChamsCache[player].LosHighlight then
+                ChamsCache[player].LosHighlight.Parent = nil
+            end
+            if ChamsCache[player].OccHighlight then
+                ChamsCache[player].OccHighlight.Parent = nil
+            end
+        end
+        return
+    end
+    
+    -- Get or create chams data
+    if not ChamsCache[player] then
+        CreateChams(player)
+    end
+    
+    local chamsData = ChamsCache[player]
+    if not chamsData then return end
+    
+    -- Update chams model parts
+    local chamsModel = chamsData.Model
+    chamsModel.Parent = workspace
+    
+    -- Clear old parts
+    for _, child in pairs(chamsModel:GetChildren()) do
+        pcall(function() child:Destroy() end)
+    end
+    
+    -- Clone parts from character
+    for _, child in pairs(character:GetChildren()) do
+        if child:IsA("BasePart") then
+            local cloned = child:Clone()
+            cloned.Parent = chamsModel
+            cloned:ClearAllChildren()
+            cloned.CanCollide = false
+            cloned.Transparency = 1 -- Make the part itself invisible, highlight does the work
+            cloned.Size = cloned.Size * 0.99 -- Prevent z-fighting
+            
+            -- Weld to original part
+            local weld = Instance.new("WeldConstraint")
+            weld.Parent = cloned
+            weld.Part0 = cloned
+            weld.Part1 = child
+        end
+    end
+    
+    -- Update highlight properties
+    chamsData.LosHighlight.FillColor = Config.ChamsVisibleColor
+    chamsData.LosHighlight.FillTransparency = Config.ChamsVisibleTransparency
+    chamsData.LosHighlight.OutlineTransparency = Config.ChamsOutlineTransparency
+    chamsData.LosHighlight.Parent = character
+    
+    chamsData.OccHighlight.FillColor = Config.ChamsOccludedColor
+    chamsData.OccHighlight.FillTransparency = Config.ChamsOccludedTransparency
+    chamsData.OccHighlight.OutlineTransparency = Config.ChamsOutlineTransparency
+    chamsData.OccHighlight.Parent = chamsModel
+end
+
+local function UpdateAllChams()
+    for player, _ in pairs(ChamsCache) do
+        UpdatePlayerChams(player)
+    end
 end
 
 -- ESP Functions
@@ -516,6 +847,9 @@ local function CreateESP(player)
     objects.HealthBar.Text.Font = 2
     
     ESP_Cache[player] = objects
+    
+    -- Create chams for this player
+    CreateChams(player)
 end
 
 local function RemoveESP(player)
@@ -552,6 +886,14 @@ local function RemoveESP(player)
         end
         
         ESP_Cache[player] = nil
+    end
+    
+    -- Remove chams
+    if ChamsCache[player] then
+        if ChamsCache[player].Model then pcall(function() ChamsCache[player].Model:Destroy() end) end
+        if ChamsCache[player].LosHighlight then pcall(function() ChamsCache[player].LosHighlight:Destroy() end) end
+        if ChamsCache[player].OccHighlight then pcall(function() ChamsCache[player].OccHighlight:Destroy() end) end
+        ChamsCache[player] = nil
     end
 end
 
@@ -820,7 +1162,7 @@ local function UpdateESP(player)
         end
     end
     
-    -- Skeleton ESP (Built-in)
+    -- Skeleton ESP
     if Config.SkeletonESP and character then
         local skeletonColor = Config.RainbowEnabled and Colors.Rainbow or Config.SkeletonColor
         DrawSkeleton(character, objects.Skeleton, skeletonColor, Config.SkeletonThickness)
@@ -831,6 +1173,9 @@ local function UpdateESP(player)
             end
         end
     end
+    
+    -- Update Chams
+    UpdatePlayerChams(player)
 end
 
 -- Rainbow effect
@@ -864,6 +1209,17 @@ for _, player in pairs(Players:GetPlayers()) do
     end
 end
 
+-- Initialize Aimbot
+Aimbot.Initialize({
+    TeamCheck = false,
+    TriggerKey = "MouseButton2",
+    FOVRadius = 90,
+    FOVVisible = true,
+    FOVColor = Color3.fromRGB(255, 255, 255),
+    FOVSides = 60,
+    FOVTransparency = 0.5
+})
+
 -- Menu toggle
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if input.KeyCode == Enum.KeyCode.Insert then
@@ -878,8 +1234,8 @@ Window:SetVisibility(true)
 
 Fluent:Notify({
     Title = "WA Universal ESP",
-    Content = "Loaded with thick skeletons! Press Insert to toggle menu.",
+    Content = "Loaded with Chams, Skeletons & Aimbot! Press Insert to toggle menu.",
     Duration = 5
 })
 
-print("WA Universal ESP with Thick Skeletons Loaded")
+print("WA Universal ESP with Chams, Skeletons & Aimbot Loaded")
