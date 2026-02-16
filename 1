@@ -28,7 +28,7 @@ local Config = {
     HealthESP = false,
     TracerESP = false,
     SkeletonESP = false,
-    ChamsESP = false, -- New Chams toggle
+    ChamsESP = false,
     
     -- Settings
     TeamCheck = false,
@@ -56,7 +56,7 @@ local Config = {
     ChamsTransparency = 0.5,
     ChamsOutlineColor = Color3.fromRGB(255, 255, 255),
     ChamsOutlineTransparency = 0,
-    ChamsFillMode = "Fill", -- Fill, Outline, Both
+    ChamsFillMode = "Fill",
 }
 
 -- Colors table for dynamic updates
@@ -253,7 +253,7 @@ do
     end)
 end
 
--- Chams Tab (New)
+-- Chams Tab
 do
     local ChamsSection = Tabs.Chams:AddSection("Character Highlighting")
     
@@ -264,7 +264,6 @@ do
     })
     ChamsToggle:OnChanged(function()
         Config.ChamsESP = ChamsToggle.Value
-        -- Update all highlights
         UpdateAllHighlights()
     end)
     
@@ -324,19 +323,6 @@ do
         Config.ChamsFillMode = Value
         UpdateAllHighlights()
     end)
-    
-    local ChamsPreview = ChamsSection:AddButton({
-        Title = "Preview Colors",
-        Description = "Shows current color settings",
-        Callback = function()
-            Fluent:Notify({
-                Title = "Chams Preview",
-                Content = string.format("Fill: %s, Outline: %s", 
-                    Config.ChamsColor, Config.ChamsOutlineColor),
-                Duration = 3
-            })
-        end
-    })
 end
 
 -- Visuals Tab
@@ -987,3 +973,56 @@ local function UpdateESP(player)
     end
     
     -- Update Chams
+    UpdateAllHighlights()
+end
+
+-- Rainbow effect
+task.spawn(function()
+    while task.wait(0.05) do
+        if Config.RainbowEnabled then
+            Colors.Rainbow = Color3.fromHSV(tick() * Config.RainbowSpeed % 1, 1, 1)
+        end
+    end
+end)
+
+-- Update loop
+RunService.RenderStepped:Connect(function()
+    if Config.Enabled then
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer then
+                UpdateESP(player)
+            end
+        end
+    end
+end)
+
+-- Player events
+Players.PlayerAdded:Connect(CreateESP)
+Players.PlayerRemoving:Connect(RemoveESP)
+
+-- Initialize ESP for existing players
+for _, player in pairs(Players:GetPlayers()) do
+    if player ~= LocalPlayer then
+        CreateESP(player)
+    end
+end
+
+-- Menu toggle
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if input.KeyCode == Enum.KeyCode.Insert then
+        Config.MenuOpen = not Config.MenuOpen
+        Window:SetVisibility(Config.MenuOpen)
+    end
+end)
+
+-- Initial setup
+Window:SelectTab(1)
+Window:SetVisibility(true)
+
+Fluent:Notify({
+    Title = "WA Universal ESP",
+    Content = "Loaded with Chams & Skeletons! Press Insert to toggle menu.",
+    Duration = 5
+})
+
+print("WA Universal ESP with Chams and Skeletons Loaded")
