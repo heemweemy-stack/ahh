@@ -1,4 +1,4 @@
--- WA Universal ESP with Chams, Skeletons & Aimbot (FIXED)
+-- WA Universal ESP with Chams, Skeletons & Aimbot (RIVALS FIXED)
 -- Services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -12,46 +12,124 @@ local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/
 local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
 local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
 
--- Load Aimbot
-local Aimbot = loadstring(game:HttpGet("https://raw.githubusercontent.com/Exunys/Aimbot-V3/main/src/Aimbot.lua"))()
-Aimbot.Load() -- Initialize the aimbot
-
--- Configure Aimbot settings
-getgenv().ExunysDeveloperAimbot = {
-    DeveloperSettings = {
-        UpdateMode = "RenderStepped",
-        TeamCheckOption = "TeamColor",
-        RainbowSpeed = 1
-    },
-    Settings = {
-        Enabled = false, -- Start disabled
-        TeamCheck = false,
-        AliveCheck = true,
-        WallCheck = false,
-        OffsetToMoveDirection = false,
-        OffsetIncrement = 15,
-        Sensitivity = 0,
-        Sensitivity2 = 3,
-        LockMode = 1,
-        LockPart = "Head",
-        TriggerKey = Enum.UserInputType.MouseButton2,
-        Toggle = false
-    },
-    FOVSettings = {
-        Enabled = true,
-        Visible = true,
-        Radius = 90,
-        NumSides = 60,
-        Thickness = 1,
-        Transparency = 1,
-        Filled = false,
-        RainbowColor = false,
-        RainbowOutlineColor = false,
-        Color = Color3.fromRGB(255, 255, 255),
-        OutlineColor = Color3.fromRGB(0, 0, 0),
-        LockedColor = Color3.fromRGB(255, 150, 150)
-    }
+-- ========== NEW AIMBOT METHOD (MORE RELIABLE FOR RIVALS) ==========
+local Aimbot = {
+    Enabled = false,
+    TeamCheck = false,
+    Key = Enum.UserInputType.MouseButton2,
+    LockPart = "Head",
+    FOV = 180,
+    Smoothness = 0.3,
+    Active = false,
+    Target = nil,
+    FOVCircle = Drawing.new("Circle"),
+    Tween = nil,
 }
+
+-- Setup FOV circle
+Aimbot.FOVCircle.Visible = false
+Aimbot.FOVCircle.Thickness = 1
+Aimbot.FOVCircle.NumSides = 60
+Aimbot.FOVCircle.Color = Color3.fromRGB(255, 255, 255)
+Aimbot.FOVCircle.Transparency = 0.5
+
+-- Find closest target
+local function FindClosestTarget()
+    local closestTarget = nil
+    local shortestDistance = Aimbot.FOV
+    
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            -- Team check
+            if Aimbot.TeamCheck and player.Team == LocalPlayer.Team then
+                continue
+            end
+            
+            local character = player.Character
+            if not character then continue end
+            
+            local targetPart = character:FindFirstChild(Aimbot.LockPart) or character:FindFirstChild("HumanoidRootPart")
+            if not targetPart then continue end
+            
+            local humanoid = character:FindFirstChild("Humanoid")
+            if not humanoid or humanoid.Health <= 0 then continue end
+            
+            -- Convert 3D position to 2D screen position
+            local screenPos, onScreen = Camera:WorldToViewportPoint(targetPart.Position)
+            if not onScreen then continue end
+            
+            -- Get mouse position
+            local mousePos = UserInputService:GetMouseLocation()
+            
+            -- Calculate distance from mouse to target on screen
+            local distance = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
+            
+            if distance < shortestDistance then
+                shortestDistance = distance
+                closestTarget = player
+            end
+        end
+    end
+    
+    return closestTarget
+end
+
+-- Input handling
+UserInputService.InputBegan:Connect(function(input)
+    if input.UserInputType == Aimbot.Key and Aimbot.Enabled then
+        Aimbot.Active = true
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Aimbot.Key then
+        Aimbot.Active = false
+        Aimbot.Target = nil
+    end
+end)
+
+-- Main aimbot loop
+RunService.RenderStepped:Connect(function()
+    -- Update FOV circle
+    if Aimbot.Enabled then
+        Aimbot.FOVCircle.Visible = true
+        Aimbot.FOVCircle.Radius = Aimbot.FOV
+        Aimbot.FOVCircle.Position = UserInputService:GetMouseLocation()
+        Aimbot.FOVCircle.Color = Aimbot.Target and Color3.fromRGB(255, 0, 0) or Color3.fromRGB(255, 255, 255)
+    else
+        Aimbot.FOVCircle.Visible = false
+    end
+    
+    -- Aimbot logic
+    if Aimbot.Enabled and Aimbot.Active then
+        Aimbot.Target = FindClosestTarget()
+        
+        if Aimbot.Target then
+            local character = Aimbot.Target.Character
+            if character then
+                local targetPart = character:FindFirstChild(Aimbot.LockPart) or character:FindFirstChild("HumanoidRootPart")
+                if targetPart then
+                    -- SMOOTH AIM METHOD (more reliable than CFrame manipulation)
+                    local targetPos = targetPart.Position
+                    local currentPos = Camera.CFrame.Position
+                    
+                    -- Calculate direction to target
+                    local direction = (targetPos - currentPos).Unit
+                    local goalCFrame = CFrame.lookAt(currentPos, targetPos)
+                    
+                    -- Smoothly interpolate
+                    if Aimbot.Smoothness > 0 then
+                        local alpha = math.min(1, 1 / (Aimbot.Smoothness * 60)) -- Adjust for frame rate
+                        Camera.CFrame = Camera.CFrame:Lerp(goalCFrame, alpha)
+                    else
+                        Camera.CFrame = goalCFrame
+                    end
+                end
+            end
+        end
+    end
+end)
+-- ========== END NEW AIMBOT ==========
 
 -- Drawing Cache
 local ESP_Cache = {}
@@ -98,6 +176,12 @@ local Config = {
     -- Chams Settings
     ChamsColor = Color3.fromRGB(255, 0, 0),
     ChamsTransparency = 0.5,
+    
+    -- Aimbot Settings
+    AimbotFOV = 180,
+    AimbotSmoothness = 0.3,
+    AimbotKey = "MouseButton2",
+    AimbotPart = "Head",
 }
 
 -- Colors table for dynamic updates
@@ -111,7 +195,7 @@ local Colors = {
 -- UI Setup with Fluent
 local Window = Fluent:CreateWindow({
     Title = "WA Universal ESP",
-    SubTitle = "with Chams, Skeletons & Aimbot",
+    SubTitle = "Rivals Edition",
     TabWidth = 160,
     Size = UDim2.fromOffset(580, 460),
     Acrylic = false,
@@ -147,8 +231,7 @@ do
     })
     TeamCheckToggle:OnChanged(function()
         Config.TeamCheck = TeamCheckToggle.Value
-        -- Update aimbot team check
-        getgenv().ExunysDeveloperAimbot.Settings.TeamCheck = Config.TeamCheck
+        Aimbot.TeamCheck = Config.TeamCheck
     end)
     
     local ShowTeamToggle = MainSection:AddToggle("ShowTeam", {
@@ -332,7 +415,7 @@ do
     end)
 end
 
--- Aimbot Tab
+-- Aimbot Tab (UPDATED)
 do
     local AimbotSection = Tabs.Aimbot:AddSection("Aimbot Controls")
     
@@ -342,135 +425,66 @@ do
     })
     AimbotToggle:OnChanged(function()
         Config.AimbotEnabled = AimbotToggle.Value
-        getgenv().ExunysDeveloperAimbot.Settings.Enabled = Config.AimbotEnabled
+        Aimbot.Enabled = Config.AimbotEnabled
     end)
     
-    -- Trigger Key
-    local KeySection = Tabs.Aimbot:AddSection("Trigger Settings")
-    
-    local KeyDropdown = KeySection:AddDropdown("TriggerKey", {
+    local KeyDropdown = AimbotSection:AddDropdown("AimbotKey", {
         Title = "Aimbot Key",
-        Values = {"MouseButton2", "MouseButton1", "LeftControl", "LeftShift", "E", "Q", "F", "V", "C", "X", "Z"},
-        Default = "MouseButton2",
-        Multi = false
+        Values = {"MouseButton2", "MouseButton1", "MouseButton3", "MouseButton4", "MouseButton5"},
+        Default = Config.AimbotKey
     })
     KeyDropdown:OnChanged(function(Value)
+        Config.AimbotKey = Value
         local keyMap = {
             MouseButton2 = Enum.UserInputType.MouseButton2,
             MouseButton1 = Enum.UserInputType.MouseButton1,
-            LeftControl = Enum.KeyCode.LeftControl,
-            LeftShift = Enum.KeyCode.LeftShift,
-            E = Enum.KeyCode.E,
-            Q = Enum.KeyCode.Q,
-            F = Enum.KeyCode.F,
-            V = Enum.KeyCode.V,
-            C = Enum.KeyCode.C,
-            X = Enum.KeyCode.X,
-            Z = Enum.KeyCode.Z
+            MouseButton3 = Enum.UserInputType.MouseButton3,
+            MouseButton4 = Enum.UserInputType.MouseButton4,
+            MouseButton5 = Enum.UserInputType.MouseButton5,
         }
-        getgenv().ExunysDeveloperAimbot.Settings.TriggerKey = keyMap[Value]
+        Aimbot.Key = keyMap[Value]
     end)
     
-    local ToggleMode = KeySection:AddToggle("ToggleMode", {
-        Title = "Toggle Mode",
-        Description = "Click once to toggle on/off",
-        Default = false
-    })
-    ToggleMode:OnChanged(function(Value)
-        getgenv().ExunysDeveloperAimbot.Settings.Toggle = Value
-    end)
-    
-    -- FOV Settings
-    local FOVSection = Tabs.Aimbot:AddSection("FOV Settings")
-    
-    local FOVEnabled = FOVSection:AddToggle("FOVEnabled", {
-        Title = "Enable FOV",
-        Default = true
-    })
-    FOVEnabled:OnChanged(function(Value)
-        getgenv().ExunysDeveloperAimbot.FOVSettings.Enabled = Value
-    end)
-    
-    local FOVVisible = FOVSection:AddToggle("FOVVisible", {
-        Title = "Show FOV Circle",
-        Default = true
-    })
-    FOVVisible:OnChanged(function(Value)
-        getgenv().ExunysDeveloperAimbot.FOVSettings.Visible = Value
-    end)
-    
-    local FOVRadius = FOVSection:AddSlider("FOVRadius", {
+    local FOVSlider = AimbotSection:AddSlider("AimbotFOV", {
         Title = "FOV Radius",
-        Default = 90,
+        Default = Config.AimbotFOV,
         Min = 10,
         Max = 360,
         Rounding = 0
     })
-    FOVRadius:OnChanged(function(Value)
-        getgenv().ExunysDeveloperAimbot.FOVSettings.Radius = Value
+    FOVSlider:OnChanged(function(Value)
+        Config.AimbotFOV = Value
+        Aimbot.FOV = Value
     end)
     
-    local FOVColor = FOVSection:AddColorpicker("FOVColor", {
-        Title = "FOV Color",
-        Default = Color3.fromRGB(255, 255, 255)
-    })
-    FOVColor:OnChanged(function(Value)
-        getgenv().ExunysDeveloperAimbot.FOVSettings.Color = Value
-    end)
-    
-    local FOVThickness = FOVSection:AddSlider("FOVThickness", {
-        Title = "FOV Thickness",
-        Default = 1,
-        Min = 1,
-        Max = 5,
-        Rounding = 1
-    })
-    FOVThickness:OnChanged(function(Value)
-        getgenv().ExunysDeveloperAimbot.FOVSettings.Thickness = Value
-    end)
-    
-    local FOVTransparency = FOVSection:AddSlider("FOVTransparency", {
-        Title = "FOV Transparency",
-        Default = 1,
+    local SmoothSlider = AimbotSection:AddSlider("AimbotSmoothness", {
+        Title = "Smoothness",
+        Default = Config.AimbotSmoothness,
         Min = 0,
         Max = 1,
         Rounding = 2
     })
-    FOVTransparency:OnChanged(function(Value)
-        getgenv().ExunysDeveloperAimbot.FOVSettings.Transparency = Value
+    SmoothSlider:OnChanged(function(Value)
+        Config.AimbotSmoothness = Value
+        Aimbot.Smoothness = Value
     end)
     
-    -- Lock Settings
-    local LockSection = Tabs.Aimbot:AddSection("Lock Settings")
-    
-    local LockPart = LockSection:AddDropdown("LockPart", {
+    local PartDropdown = AimbotSection:AddDropdown("AimbotPart", {
         Title = "Lock Part",
         Values = {"Head", "Torso", "HumanoidRootPart"},
-        Default = "Head",
-        Multi = false
+        Default = Config.AimbotPart
     })
-    LockPart:OnChanged(function(Value)
-        getgenv().ExunysDeveloperAimbot.Settings.LockPart = Value
+    PartDropdown:OnChanged(function(Value)
+        Config.AimbotPart = Value
+        Aimbot.LockPart = Value
     end)
     
-    local WallCheck = LockSection:AddToggle("WallCheck", {
-        Title = "Wall Check",
-        Description = "Don't lock through walls",
+    local TeamToggle = AimbotSection:AddToggle("AimbotTeamCheck", {
+        Title = "Team Check",
         Default = false
     })
-    WallCheck:OnChanged(function(Value)
-        getgenv().ExunysDeveloperAimbot.Settings.WallCheck = Value
-    end)
-    
-    local Sensitivity = LockSection:AddSlider("Sensitivity", {
-        Title = "Smoothness",
-        Default = 0,
-        Min = 0,
-        Max = 1,
-        Rounding = 2
-    })
-    Sensitivity:OnChanged(function(Value)
-        getgenv().ExunysDeveloperAimbot.Settings.Sensitivity = Value
+    TeamToggle:OnChanged(function(Value)
+        Aimbot.TeamCheck = Value
     end)
 end
 
@@ -525,7 +539,6 @@ do
     })
     RainbowSpeed:OnChanged(function(Value)
         Config.RainbowSpeed = Value
-        getgenv().ExunysDeveloperAimbot.DeveloperSettings.RainbowSpeed = Value
     end)
 end
 
@@ -535,8 +548,8 @@ do
     InterfaceManager:SetLibrary(Fluent)
     SaveManager:IgnoreThemeSettings()
     SaveManager:SetIgnoreIndexes({})
-    InterfaceManager:SetFolder("WAUniversalESP_Complete")
-    SaveManager:SetFolder("WAUniversalESP_Complete/configs")
+    InterfaceManager:SetFolder("WAUniversalESP_Rivals")
+    SaveManager:SetFolder("WAUniversalESP_Rivals/configs")
     
     InterfaceManager:BuildInterfaceSection(Tabs.Config)
     SaveManager:BuildConfigSection(Tabs.Config)
@@ -572,9 +585,6 @@ do
             for _, highlight in pairs(ChamsCache) do
                 pcall(function() highlight:Destroy() end)
             end
-            
-            -- Unload aimbot
-            pcall(function() Aimbot:Exit() end)
             
             ESP_Cache = {}
             ChamsCache = {}
@@ -1008,8 +1018,9 @@ Window:SetVisibility(true)
 
 Fluent:Notify({
     Title = "WA Universal ESP",
-    Content = "Loaded with Chams, Skeletons & Aimbot! Press Insert for menu.",
+    Content = "Rivals Edition - Press Insert for menu.",
     Duration = 5
 })
 
-print("WA Universal ESP with Chams, Skeletons & Aimbot Loaded")
+print("WA Universal ESP - Rivals Edition Loaded")
+print("✅ New aimbot method should work better on Rivals!")
