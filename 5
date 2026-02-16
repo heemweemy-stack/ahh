@@ -1,4 +1,4 @@
--- WA Universal ESP v1.0 (SIMPLE WORKING VERSION)
+-- WA Universal ESP v1.0 (PURE ESP - NO AIMBOT)
 -- Services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -17,23 +17,29 @@ local Config = {
     Enabled = false,
     BoxESP = false,
     NameESP = false,
+    HealthESP = false,
+    TracerESP = false,
     TeamCheck = false,
     BoxStyle = "Corner",
+    TracerOrigin = "Bottom",
+    HealthStyle = "Bar",
     BoxThickness = 1,
     TextSize = 14,
     MaxDistance = 1000,
     EnemyColor = Color3.fromRGB(255, 25, 25),
+    AllyColor = Color3.fromRGB(25, 255, 25),
 }
 
 -- Colors
 local Colors = {
     Enemy = Config.EnemyColor,
+    Ally = Config.AllyColor,
 }
 
 -- Create Window
 local Window = Fluent:CreateWindow({
-    Title = "WA Universal ESP v1.0",
-    SubTitle = "Simple Edition",
+    Title = "WA ESP v1.0",
+    SubTitle = "Pure ESP",
     TabWidth = 160,
     Size = UDim2.fromOffset(580, 460),
     Theme = "Dark",
@@ -48,7 +54,7 @@ local Tabs = {
 
 -- Main Tab
 do
-    local Section = Tabs.Main:AddSection("Controls")
+    local Section = Tabs.Main:AddSection("Main Controls")
     
     local Toggle = Section:AddToggle("Enabled", {
         Title = "Enable ESP",
@@ -80,9 +86,9 @@ end
 
 -- ESP Tab
 do
-    local Section = Tabs.ESP:AddSection("Box ESP")
+    local BoxSection = Tabs.ESP:AddSection("Box ESP")
     
-    local BoxToggle = Section:AddToggle("BoxESP", {
+    local BoxToggle = BoxSection:AddToggle("BoxESP", {
         Title = "Box ESP",
         Default = Config.BoxESP
     })
@@ -90,17 +96,16 @@ do
         Config.BoxESP = Value
     end)
     
-    local BoxStyle = Section:AddDropdown("BoxStyle", {
+    local BoxStyle = BoxSection:AddDropdown("BoxStyle", {
         Title = "Box Style",
         Values = {"Corner", "Full"},
-        Default = Config.BoxStyle,
-        Multi = false
+        Default = Config.BoxStyle
     })
     BoxStyle:OnChanged(function(Value)
         Config.BoxStyle = Value
     end)
     
-    local BoxThick = Section:AddSlider("BoxThickness", {
+    local BoxThick = BoxSection:AddSlider("BoxThickness", {
         Title = "Box Thickness",
         Default = Config.BoxThickness,
         Min = 1,
@@ -132,6 +137,44 @@ do
         Config.TextSize = Value
     end)
     
+    local HealthSection = Tabs.ESP:AddSection("Health ESP")
+    
+    local HealthToggle = HealthSection:AddToggle("HealthESP", {
+        Title = "Health ESP",
+        Default = Config.HealthESP
+    })
+    HealthToggle:OnChanged(function(Value)
+        Config.HealthESP = Value
+    end)
+    
+    local HealthStyle = HealthSection:AddDropdown("HealthStyle", {
+        Title = "Health Style",
+        Values = {"Bar", "Text", "Both"},
+        Default = Config.HealthStyle
+    })
+    HealthStyle:OnChanged(function(Value)
+        Config.HealthStyle = Value
+    end)
+    
+    local TracerSection = Tabs.ESP:AddSection("Tracers")
+    
+    local TracerToggle = TracerSection:AddToggle("TracerESP", {
+        Title = "Tracer ESP",
+        Default = Config.TracerESP
+    })
+    TracerToggle:OnChanged(function(Value)
+        Config.TracerESP = Value
+    end)
+    
+    local TracerOrigin = TracerSection:AddDropdown("TracerOrigin", {
+        Title = "Tracer Origin",
+        Values = {"Bottom", "Top", "Mouse", "Center"},
+        Default = Config.TracerOrigin
+    })
+    TracerOrigin:OnChanged(function(Value)
+        Config.TracerOrigin = Value
+    end)
+    
     local ColorSection = Tabs.ESP:AddSection("Colors")
     
     local EnemyColor = ColorSection:AddColorpicker("EnemyColor", {
@@ -142,11 +185,32 @@ do
         Config.EnemyColor = Value
         Colors.Enemy = Value
     end)
+    
+    local AllyColor = ColorSection:AddColorpicker("AllyColor", {
+        Title = "Ally Color",
+        Default = Config.AllyColor
+    })
+    AllyColor:OnChanged(function(Value)
+        Config.AllyColor = Value
+        Colors.Ally = Value
+    end)
 end
 
 -- ESP Functions
 local function GetPlayerColor(player)
-    return (Config.TeamCheck and player.Team == LocalPlayer.Team) and Color3.fromRGB(25, 255, 25) or Colors.Enemy
+    return (Config.TeamCheck and player.Team == LocalPlayer.Team) and Colors.Ally or Colors.Enemy
+end
+
+local function GetTracerOrigin()
+    if Config.TracerOrigin == "Bottom" then
+        return Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y)
+    elseif Config.TracerOrigin == "Top" then
+        return Vector2.new(Camera.ViewportSize.X/2, 0)
+    elseif Config.TracerOrigin == "Mouse" then
+        return UserInputService:GetMouseLocation()
+    else
+        return Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
+    end
 end
 
 local function CreateESP(player)
@@ -164,6 +228,12 @@ local function CreateESP(player)
             BottomRight = Drawing.new("Line")
         },
         Name = Drawing.new("Text"),
+        Tracer = Drawing.new("Line"),
+        HealthBar = {
+            Outline = Drawing.new("Square"),
+            Fill = Drawing.new("Square"),
+            Text = Drawing.new("Text")
+        },
     }
     
     for _, line in pairs(objects.Box) do
@@ -178,6 +248,24 @@ local function CreateESP(player)
     objects.Name.Size = Config.TextSize
     objects.Name.Color = Colors.Enemy
     objects.Name.Font = 2
+    
+    objects.Tracer.Visible = false
+    objects.Tracer.Color = Colors.Enemy
+    objects.Tracer.Thickness = 1
+    
+    objects.HealthBar.Outline.Visible = false
+    objects.HealthBar.Outline.Filled = false
+    objects.HealthBar.Outline.Color = Color3.new(0, 0, 0)
+    objects.HealthBar.Outline.Thickness = 1
+    
+    objects.HealthBar.Fill.Visible = false
+    objects.HealthBar.Fill.Filled = true
+    objects.HealthBar.Fill.Color = Color3.fromRGB(0, 255, 0)
+    
+    objects.HealthBar.Text.Visible = false
+    objects.HealthBar.Text.Center = true
+    objects.HealthBar.Text.Size = Config.TextSize
+    objects.HealthBar.Text.Font = 2
     
     ESP_Cache[player] = objects
 end
@@ -211,6 +299,10 @@ local function UpdateESP(player)
     if not character then
         for _, line in pairs(objects.Box) do line.Visible = false end
         objects.Name.Visible = false
+        objects.Tracer.Visible = false
+        objects.HealthBar.Outline.Visible = false
+        objects.HealthBar.Fill.Visible = false
+        objects.HealthBar.Text.Visible = false
         return
     end
     
@@ -220,6 +312,10 @@ local function UpdateESP(player)
     if not rootPart or not humanoid or humanoid.Health <= 0 then
         for _, line in pairs(objects.Box) do line.Visible = false end
         objects.Name.Visible = false
+        objects.Tracer.Visible = false
+        objects.HealthBar.Outline.Visible = false
+        objects.HealthBar.Fill.Visible = false
+        objects.HealthBar.Text.Visible = false
         return
     end
     
@@ -229,6 +325,10 @@ local function UpdateESP(player)
     if not onScreen or distance > Config.MaxDistance then
         for _, line in pairs(objects.Box) do line.Visible = false end
         objects.Name.Visible = false
+        objects.Tracer.Visible = false
+        objects.HealthBar.Outline.Visible = false
+        objects.HealthBar.Fill.Visible = false
+        objects.HealthBar.Text.Visible = false
         return
     end
     
@@ -236,6 +336,10 @@ local function UpdateESP(player)
     if isTeam then
         for _, line in pairs(objects.Box) do line.Visible = false end
         objects.Name.Visible = false
+        objects.Tracer.Visible = false
+        objects.HealthBar.Outline.Visible = false
+        objects.HealthBar.Fill.Visible = false
+        objects.HealthBar.Text.Visible = false
         return
     end
     
@@ -328,6 +432,50 @@ local function UpdateESP(player)
     else
         objects.Name.Visible = false
     end
+    
+    -- Tracer ESP
+    if Config.TracerESP then
+        objects.Tracer.From = GetTracerOrigin()
+        objects.Tracer.To = Vector2.new(pos.X, pos.Y)
+        objects.Tracer.Color = color
+        objects.Tracer.Visible = true
+    else
+        objects.Tracer.Visible = false
+    end
+    
+    -- Health ESP
+    if Config.HealthESP then
+        local health = humanoid.Health
+        local maxHealth = humanoid.MaxHealth
+        local healthPercent = math.max(0, math.min(1, health / maxHealth))
+        
+        local barHeight = screenHeight * 0.8
+        local barWidth = 4
+        local barPos = Vector2.new(boxPos.X - barWidth - 2, boxPos.Y + (screenHeight - barHeight)/2)
+        
+        objects.HealthBar.Outline.Size = Vector2.new(barWidth, barHeight)
+        objects.HealthBar.Outline.Position = barPos
+        objects.HealthBar.Outline.Visible = true
+        
+        objects.HealthBar.Fill.Size = Vector2.new(barWidth - 2, barHeight * healthPercent)
+        objects.HealthBar.Fill.Position = Vector2.new(barPos.X + 1, barPos.Y + barHeight * (1 - healthPercent))
+        objects.HealthBar.Fill.Color = Color3.fromRGB(255 * (1 - healthPercent), 255 * healthPercent, 0)
+        objects.HealthBar.Fill.Visible = true
+        
+        if Config.HealthStyle == "Text" or Config.HealthStyle == "Both" then
+            objects.HealthBar.Text.Text = math.floor(health) .. "/" .. math.floor(maxHealth)
+            objects.HealthBar.Text.Position = Vector2.new(boxPos.X + boxWidth/2, boxPos.Y - 5)
+            objects.HealthBar.Text.Color = color
+            objects.HealthBar.Text.Size = Config.TextSize - 2
+            objects.HealthBar.Text.Visible = true
+        else
+            objects.HealthBar.Text.Visible = false
+        end
+    else
+        objects.HealthBar.Outline.Visible = false
+        objects.HealthBar.Fill.Visible = false
+        objects.HealthBar.Text.Visible = false
+    end
 end
 
 -- Update loop
@@ -364,6 +512,6 @@ Window:SelectTab(1)
 
 Fluent:Notify({
     Title = "WA ESP v1.0",
-    Content = "Simple version loaded! Press Insert for menu.",
+    Content = "Pure ESP loaded! Press Insert for menu.",
     Duration = 5
 })
