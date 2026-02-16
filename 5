@@ -1,437 +1,72 @@
--- WA Universal ESP with Chams, Skeletons & Aimbot (FIXED)
+-- WA Universal ESP with Chams, Skeletons & Aimbot (IMGUI Style)
 -- Services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
-local CoreGui = game:GetService("CoreGui")
 local Camera = workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
 
--- Load Fluent UI Library
-local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
-local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
-local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
+-- Load Rayfield UI Library (IMGUI Style)
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
--- ============================================
--- AIMBOT MODULE (PASTE THE ENTIRE CODE HERE)
--- ============================================
---[[
+-- Create Window
+local Window = Rayfield:CreateWindow({
+    Name = "WA Universal",
+    LoadingTitle = "WA Universal ESP",
+    LoadingSubtitle = "by heemweemy",
+    ConfigurationSaving = {
+        Enabled = true,
+        FolderName = "WAUniversal",
+        FileName = "Config"
+    },
+    Discord = {
+        Enabled = false,
+        Invite = "",
+        RememberJoins = false
+    },
+    KeySystem = false
+})
 
-    Universal Aimbot Module by Exunys © CC0 1.0 Universal (2023 - 2024)
-    https://github.com/Exunys
+-- Load Aimbot Module (Embedded)
+local Aimbot = loadstring(game:HttpGet("https://raw.githubusercontent.com/Exunys/Aimbot-V3/main/src/Aimbot.lua"))()
+Aimbot.Load()
 
-]]
-
---// Cache
-
-local game, workspace = game, workspace
-local getrawmetatable, getmetatable, setmetatable, pcall, getgenv, next, tick = getrawmetatable, getmetatable, setmetatable, pcall, getgenv, next, tick
-local Vector2new, Vector3zero, CFramenew, Color3fromRGB, Color3fromHSV, Drawingnew, TweenInfonew = Vector2.new, Vector3.zero, CFrame.new, Color3.fromRGB, Color3.fromHSV, Drawing.new, TweenInfo.new
-local getupvalue, mousemoverel, tablefind, tableremove, stringlower, stringsub, mathclamp = debug.getupvalue, mousemoverel or (Input and Input.MouseMove), table.find, table.remove, string.lower, string.sub, math.clamp
-
-local GameMetatable = getrawmetatable and getrawmetatable(game) or {
-    -- Auxillary functions - if the executor doesn't support "getrawmetatable".
-
-    __index = function(self, Index)
-        return self[Index]
-    end,
-
-    __newindex = function(self, Index, Value)
-        self[Index] = Value
-    end
-}
-
-local __index = GameMetatable.__index
-local __newindex = GameMetatable.__newindex
-
-local getrenderproperty, setrenderproperty = getrenderproperty or __index, setrenderproperty or __newindex
-
-local GetService = __index(game, "GetService")
-
---// Services
-
-local RunService = GetService(game, "RunService")
-local UserInputService = GetService(game, "UserInputService")
-local TweenService = GetService(game, "TweenService")
-local Players = GetService(game, "Players")
-
---// Service Methods
-
-local LocalPlayer = __index(Players, "LocalPlayer")
-local Camera = __index(workspace, "CurrentCamera")
-
-local FindFirstChild, FindFirstChildOfClass = __index(game, "FindFirstChild"), __index(game, "FindFirstChildOfClass")
-local GetDescendants = __index(game, "GetDescendants")
-local WorldToViewportPoint = __index(Camera, "WorldToViewportPoint")
-local GetPartsObscuringTarget = __index(Camera, "GetPartsObscuringTarget")
-local GetMouseLocation = __index(UserInputService, "GetMouseLocation")
-local GetPlayers = __index(Players, "GetPlayers")
-
---// Variables
-
-local RequiredDistance, Typing, Running, ServiceConnections, Animation, OriginalSensitivity = 2000, false, false, {}
-local Connect, Disconnect = __index(game, "DescendantAdded").Connect
-
---[[
-local Degrade = false
-
-do
-    xpcall(function()
-        local TemporaryDrawing = Drawingnew("Line")
-        getrenderproperty = getupvalue(getmetatable(TemporaryDrawing).__index, 4)
-        setrenderproperty = getupvalue(getmetatable(TemporaryDrawing).__newindex, 4)
-        TemporaryDrawing.Remove(TemporaryDrawing)
-    end, function()
-        Degrade, getrenderproperty, setrenderproperty = true, function(Object, Key)
-            return Object[Key]
-        end, function(Object, Key, Value)
-            Object[Key] = Value
-        end
-    end)
-
-    local TemporaryConnection = Connect(__index(game, "DescendantAdded"), function() end)
-    Disconnect = TemporaryConnection.Disconnect
-    Disconnect(TemporaryConnection)
-end
-]]
-
---// Checking for multiple processes
-
-if ExunysDeveloperAimbot and ExunysDeveloperAimbot.Exit then
-    ExunysDeveloperAimbot:Exit()
-end
-
---// Environment
-
+-- Configure Aimbot
 getgenv().ExunysDeveloperAimbot = {
     DeveloperSettings = {
         UpdateMode = "RenderStepped",
         TeamCheckOption = "TeamColor",
-        RainbowSpeed = 1 -- Bigger = Slower
+        RainbowSpeed = 1
     },
-
     Settings = {
-        Enabled = true,
-
+        Enabled = false,
         TeamCheck = false,
         AliveCheck = true,
         WallCheck = false,
-
         OffsetToMoveDirection = false,
         OffsetIncrement = 15,
-
-        Sensitivity = 0, -- Animation length (in seconds) before fully locking onto target
-        Sensitivity2 = 3.5, -- mousemoverel Sensitivity
-
-        LockMode = 1, -- 1 = CFrame; 2 = mousemoverel
-        LockPart = "Head", -- Body part to lock on
-
+        Sensitivity = 0,
+        Sensitivity2 = 3,
+        LockMode = 1,
+        LockPart = "Head",
         TriggerKey = Enum.UserInputType.MouseButton2,
         Toggle = false
     },
-
     FOVSettings = {
         Enabled = true,
         Visible = true,
-
         Radius = 90,
         NumSides = 60,
-
         Thickness = 1,
         Transparency = 1,
         Filled = false,
-
         RainbowColor = false,
         RainbowOutlineColor = false,
-        Color = Color3fromRGB(255, 255, 255),
-        OutlineColor = Color3fromRGB(0, 0, 0),
-        LockedColor = Color3fromRGB(255, 150, 150)
-    },
-
-    Blacklisted = {},
-    FOVCircleOutline = Drawingnew("Circle"),
-    FOVCircle = Drawingnew("Circle")
+        Color = Color3.fromRGB(255, 255, 255),
+        OutlineColor = Color3.fromRGB(0, 0, 0),
+        LockedColor = Color3.fromRGB(255, 150, 150)
+    }
 }
-
-local Environment = getgenv().ExunysDeveloperAimbot
-
-setrenderproperty(Environment.FOVCircle, "Visible", false)
-setrenderproperty(Environment.FOVCircleOutline, "Visible", false)
-
---// Core Functions
-
-local FixUsername = function(String)
-    local Result
-
-    for _, Value in next, GetPlayers(Players) do
-        local Name = __index(Value, "Name")
-
-        if stringsub(stringlower(Name), 1, #String) == stringlower(String) then
-            Result = Name
-        end
-    end
-
-    return Result
-end
-
-local GetRainbowColor = function()
-    local RainbowSpeed = Environment.DeveloperSettings.RainbowSpeed
-
-    return Color3fromHSV(tick() % RainbowSpeed / RainbowSpeed, 1, 1)
-end
-
-local ConvertVector = function(Vector)
-    return Vector2new(Vector.X, Vector.Y)
-end
-
-local CancelLock = function()
-    Environment.Locked = nil
-
-    local FOVCircle = Environment.FOVCircle--Degrade and Environment.FOVCircle or Environment.FOVCircle.__OBJECT
-
-    setrenderproperty(FOVCircle, "Color", Environment.FOVSettings.Color)
-    __newindex(UserInputService, "MouseDeltaSensitivity", OriginalSensitivity)
-
-    if Animation then
-        Animation:Cancel()
-    end
-end
-
-local GetClosestPlayer = function()
-    local Settings = Environment.Settings
-    local LockPart = Settings.LockPart
-
-    if not Environment.Locked then
-        RequiredDistance = Environment.FOVSettings.Enabled and Environment.FOVSettings.Radius or 2000
-
-        for _, Value in next, GetPlayers(Players) do
-            local Character = __index(Value, "Character")
-            local Humanoid = Character and FindFirstChildOfClass(Character, "Humanoid")
-
-            if Value ~= LocalPlayer and not tablefind(Environment.Blacklisted, __index(Value, "Name")) and Character and FindFirstChild(Character, LockPart) and Humanoid then
-                local PartPosition, TeamCheckOption = __index(Character[LockPart], "Position"), Environment.DeveloperSettings.TeamCheckOption
-
-                if Settings.TeamCheck and __index(Value, TeamCheckOption) == __index(LocalPlayer, TeamCheckOption) then
-                    continue
-                end
-
-                if Settings.AliveCheck and __index(Humanoid, "Health") <= 0 then
-                    continue
-                end
-
-                if Settings.WallCheck then
-                    local BlacklistTable = GetDescendants(__index(LocalPlayer, "Character"))
-
-                    for _, Value in next, GetDescendants(Character) do
-                        BlacklistTable[#BlacklistTable + 1] = Value
-                    end
-
-                    if #GetPartsObscuringTarget(Camera, {PartPosition}, BlacklistTable) > 0 then
-                        continue
-                    end
-                end
-
-                local Vector, OnScreen, Distance = WorldToViewportPoint(Camera, PartPosition)
-                Vector = ConvertVector(Vector)
-                Distance = (GetMouseLocation(UserInputService) - Vector).Magnitude
-
-                if Distance < RequiredDistance and OnScreen then
-                    RequiredDistance, Environment.Locked = Distance, Value
-                end
-            end
-        end
-    elseif (GetMouseLocation(UserInputService) - ConvertVector(WorldToViewportPoint(Camera, __index(__index(__index(Environment.Locked, "Character"), LockPart), "Position")))).Magnitude > RequiredDistance then
-        CancelLock()
-    end
-end
-
-local Load = function()
-    OriginalSensitivity = __index(UserInputService, "MouseDeltaSensitivity")
-
-    local Settings, FOVCircle, FOVCircleOutline, FOVSettings, Offset = Environment.Settings, Environment.FOVCircle, Environment.FOVCircleOutline, Environment.FOVSettings
-
-    --[[
-    if not Degrade then
-        FOVCircle, FOVCircleOutline = FOVCircle.__OBJECT, FOVCircleOutline.__OBJECT
-    end
-    ]]
-
-    ServiceConnections.RenderSteppedConnection = Connect(__index(RunService, Environment.DeveloperSettings.UpdateMode), function()
-        local OffsetToMoveDirection, LockPart = Settings.OffsetToMoveDirection, Settings.LockPart
-
-        if FOVSettings.Enabled and Settings.Enabled then
-            for Index, Value in next, FOVSettings do
-                if Index == "Color" then
-                    continue
-                end
-
-                if pcall(getrenderproperty, FOVCircle, Index) then
-                    setrenderproperty(FOVCircle, Index, Value)
-                    setrenderproperty(FOVCircleOutline, Index, Value)
-                end
-            end
-
-            setrenderproperty(FOVCircle, "Color", (Environment.Locked and FOVSettings.LockedColor) or FOVSettings.RainbowColor and GetRainbowColor() or FOVSettings.Color)
-            setrenderproperty(FOVCircleOutline, "Color", FOVSettings.RainbowOutlineColor and GetRainbowColor() or FOVSettings.OutlineColor)
-
-            setrenderproperty(FOVCircleOutline, "Thickness", FOVSettings.Thickness + 1)
-            setrenderproperty(FOVCircle, "Position", GetMouseLocation(UserInputService))
-            setrenderproperty(FOVCircleOutline, "Position", GetMouseLocation(UserInputService))
-        else
-            setrenderproperty(FOVCircle, "Visible", false)
-            setrenderproperty(FOVCircleOutline, "Visible", false)
-        end
-
-        if Running and Settings.Enabled then
-            GetClosestPlayer()
-
-            Offset = OffsetToMoveDirection and __index(FindFirstChildOfClass(__index(Environment.Locked, "Character"), "Humanoid"), "MoveDirection") * (mathclamp(Settings.OffsetIncrement, 1, 30) / 10) or Vector3zero
-
-            if Environment.Locked then
-                local LockedPosition_Vector3 = __index(__index(Environment.Locked, "Character")[LockPart], "Position")
-                local LockedPosition = WorldToViewportPoint(Camera, LockedPosition_Vector3 + Offset)
-
-                if Environment.Settings.LockMode == 2 then
-                    mousemoverel((LockedPosition.X - GetMouseLocation(UserInputService).X) / Settings.Sensitivity2, (LockedPosition.Y - GetMouseLocation(UserInputService).Y) / Settings.Sensitivity2)
-                else
-                    if Settings.Sensitivity > 0 then
-                        Animation = TweenService:Create(Camera, TweenInfonew(Environment.Settings.Sensitivity, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {CFrame = CFramenew(Camera.CFrame.Position, LockedPosition_Vector3)})
-                        Animation:Play()
-                    else
-                        __newindex(Camera, "CFrame", CFramenew(Camera.CFrame.Position, LockedPosition_Vector3 + Offset))
-                    end
-
-                    __newindex(UserInputService, "MouseDeltaSensitivity", 0)
-                end
-
-                setrenderproperty(FOVCircle, "Color", FOVSettings.LockedColor)
-            end
-        end
-    end)
-
-    ServiceConnections.InputBeganConnection = Connect(__index(UserInputService, "InputBegan"), function(Input)
-        local TriggerKey, Toggle = Settings.TriggerKey, Settings.Toggle
-
-        if Typing then
-            return
-        end
-
-        if Input.UserInputType == Enum.UserInputType.Keyboard and Input.KeyCode == TriggerKey or Input.UserInputType == TriggerKey then
-            if Toggle then
-                Running = not Running
-
-                if not Running then
-                    CancelLock()
-                end
-            else
-                Running = true
-            end
-        end
-    end)
-
-    ServiceConnections.InputEndedConnection = Connect(__index(UserInputService, "InputEnded"), function(Input)
-        local TriggerKey, Toggle = Settings.TriggerKey, Settings.Toggle
-
-        if Toggle or Typing then
-            return
-        end
-
-        if Input.UserInputType == Enum.UserInputType.Keyboard and Input.KeyCode == TriggerKey or Input.UserInputType == TriggerKey then
-            Running = false
-            CancelLock()
-        end
-    end)
-end
-
---// Typing Check
-
-ServiceConnections.TypingStartedConnection = Connect(__index(UserInputService, "TextBoxFocused"), function()
-    Typing = true
-end)
-
-ServiceConnections.TypingEndedConnection = Connect(__index(UserInputService, "TextBoxFocusReleased"), function()
-    Typing = false
-end)
-
---// Functions
-
-function Environment.Exit(self) -- METHOD | ExunysDeveloperAimbot:Exit(<void>)
-    assert(self, "EXUNYS_AIMBOT-V3.Exit: Missing parameter #1 \"self\" <table>.")
-
-    for Index, _ in next, ServiceConnections do
-        Disconnect(ServiceConnections[Index])
-    end
-
-    Load = nil; ConvertVector = nil; CancelLock = nil; GetClosestPlayer = nil; GetRainbowColor = nil; FixUsername = nil
-
-    self.FOVCircle:Remove()
-    self.FOVCircleOutline:Remove()
-    getgenv().ExunysDeveloperAimbot = nil
-end
-
-function Environment.Restart() -- ExunysDeveloperAimbot.Restart(<void>)
-    for Index, _ in next, ServiceConnections do
-        Disconnect(ServiceConnections[Index])
-    end
-
-    Load()
-end
-
-function Environment.Blacklist(self, Username) -- METHOD | ExunysDeveloperAimbot:Blacklist(<string> Player Name)
-    assert(self, "EXUNYS_AIMBOT-V3.Blacklist: Missing parameter #1 \"self\" <table>.")
-    assert(Username, "EXUNYS_AIMBOT-V3.Blacklist: Missing parameter #2 \"Username\" <string>.")
-
-    Username = FixUsername(Username)
-
-    assert(self, "EXUNYS_AIMBOT-V3.Blacklist: User "..Username.." couldn't be found.")
-
-    self.Blacklisted[#self.Blacklisted + 1] = Username
-end
-
-function Environment.Whitelist(self, Username) -- METHOD | ExunysDeveloperAimbot:Whitelist(<string> Player Name)
-    assert(self, "EXUNYS_AIMBOT-V3.Whitelist: Missing parameter #1 \"self\" <table>.")
-    assert(Username, "EXUNYS_AIMBOT-V3.Whitelist: Missing parameter #2 \"Username\" <string>.")
-
-    Username = FixUsername(Username)
-
-    assert(Username, "EXUNYS_AIMBOT-V3.Whitelist: User "..Username.." couldn't be found.")
-
-    local Index = tablefind(self.Blacklisted, Username)
-
-    assert(Index, "EXUNYS_AIMBOT-V3.Whitelist: User "..Username.." is not blacklisted.")
-
-    tableremove(self.Blacklisted, Index)
-end
-
-function Environment.GetClosestPlayer() -- ExunysDeveloperAimbot.GetClosestPlayer(<void>)
-    GetClosestPlayer()
-    local Value = Environment.Locked
-    CancelLock()
-
-    return Value
-end
-
-Environment.Load = Load -- ExunysDeveloperAimbot.Load()
-
-setmetatable(Environment, {__call = Load})
-
--- Load the aimbot
-Aimbot = Environment
-Aimbot.Load()
-
--- ============================================
--- END OF AIMBOT MODULE
--- ============================================
-
--- Simple function to refresh aimbot settings
-local function RefreshAimbot()
-    -- Re-assign the settings to force an update
-    getgenv().ExunysDeveloperAimbot.Settings = getgenv().ExunysDeveloperAimbot.Settings
-    getgenv().ExunysDeveloperAimbot.FOVSettings = getgenv().ExunysDeveloperAimbot.FOVSettings
-    
-    -- Small delay to ensure settings are applied
-    task.wait()
-end
 
 -- Drawing Cache
 local ESP_Cache = {}
@@ -439,10 +74,6 @@ local ChamsCache = {}
 
 -- Configuration
 local Config = {
-    -- Menu
-    MenuOpen = true,
-    
-    -- ESP Toggles
     Enabled = false,
     BoxESP = false,
     NameESP = false,
@@ -450,37 +81,32 @@ local Config = {
     TracerESP = false,
     SkeletonESP = false,
     ChamsESP = false,
-    
-    -- Aimbot Toggles
     AimbotEnabled = false,
-    
-    -- Settings
+    TriggerbotEnabled = false,
     TeamCheck = false,
     ShowTeam = false,
     BoxStyle = "Corner",
     TracerOrigin = "Bottom",
     HealthStyle = "Bar",
     RainbowEnabled = false,
-    
-    -- Visual Settings
     BoxThickness = 1,
     TextSize = 14,
     MaxDistance = 1000,
     RainbowSpeed = 1,
-    
-    -- Colors
     EnemyColor = Color3.fromRGB(255, 25, 25),
     AllyColor = Color3.fromRGB(25, 255, 25),
     HealthColor = Color3.fromRGB(0, 255, 0),
     SkeletonColor = Color3.fromRGB(255, 255, 255),
     SkeletonThickness = 3,
-    
-    -- Chams Settings
     ChamsColor = Color3.fromRGB(255, 0, 0),
     ChamsTransparency = 0.5,
+    AimbotKey = "MouseButton2",
+    AimbotSmoothness = 0,
+    AimbotFOV = 90,
+    TriggerbotDelay = 0,
 }
 
--- Colors table for dynamic updates
+-- Colors table
 local Colors = {
     Enemy = Config.EnemyColor,
     Ally = Config.AllyColor,
@@ -488,491 +114,360 @@ local Colors = {
     Rainbow = nil
 }
 
--- UI Setup with Fluent
-local Window = Fluent:CreateWindow({
-    Title = "WA Universal ESP",
-    SubTitle = "with Chams, Skeletons & Aimbot",
-    TabWidth = 160,
-    Size = UDim2.fromOffset(580, 460),
-    Acrylic = false,
-    Theme = "Dark",
-    MinimizeKey = Enum.KeyCode.LeftControl
-})
-
 -- Create Tabs
-local Tabs = {
-    Main = Window:AddTab({ Title = "Main", Icon = "home" }),
-    ESP = Window:AddTab({ Title = "ESP", Icon = "eye" }),
-    Chams = Window:AddTab({ Title = "Chams", Icon = "palette" }),
-    Aimbot = Window:AddTab({ Title = "Aimbot", Icon = "target" }),
-    Visuals = Window:AddTab({ Title = "Visuals", Icon = "brush" }),
-    Config = Window:AddTab({ Title = "Config", Icon = "save" })
-}
+local MainTab = Window:CreateTab("Main", "home")
+local ESPTab = Window:CreateTab("ESP", "eye")
+local ChamsTab = Window:CreateTab("Chams", "palette")
+local AimbotTab = Window:CreateTab("Aimbot", "target")
+local TriggerTab = Window:CreateTab("Trigger", "zap")
+local VisualsTab = Window:CreateTab("Visuals", "brush")
 
 -- Main Tab
 do
-    local MainSection = Tabs.Main:AddSection("Main Controls")
+    local MainSection = MainTab:CreateSection("Main Controls")
     
-    local EnabledToggle = MainSection:AddToggle("Enabled", {
-        Title = "Enable ESP",
-        Default = Config.Enabled
+    local EnabledToggle = MainTab:CreateToggle({
+        Name = "Enable ESP",
+        CurrentValue = Config.Enabled,
+        Callback = function(Value)
+            Config.Enabled = Value
+        end
     })
-    EnabledToggle:OnChanged(function()
-        Config.Enabled = EnabledToggle.Value
-    end)
     
-    local TeamCheckToggle = MainSection:AddToggle("TeamCheck", {
-        Title = "Team Check",
-        Default = Config.TeamCheck
+    local TeamCheckToggle = MainTab:CreateToggle({
+        Name = "Team Check",
+        CurrentValue = Config.TeamCheck,
+        Callback = function(Value)
+            Config.TeamCheck = Value
+            getgenv().ExunysDeveloperAimbot.Settings.TeamCheck = Value
+        end
     })
-    TeamCheckToggle:OnChanged(function()
-        Config.TeamCheck = TeamCheckToggle.Value
-        getgenv().ExunysDeveloperAimbot.Settings.TeamCheck = Config.TeamCheck
-        RefreshAimbot()
-    end)
     
-    local ShowTeamToggle = MainSection:AddToggle("ShowTeam", {
-        Title = "Show Team",
-        Default = Config.ShowTeam
+    local ShowTeamToggle = MainTab:CreateToggle({
+        Name = "Show Team",
+        CurrentValue = Config.ShowTeam,
+        Callback = function(Value)
+            Config.ShowTeam = Value
+        end
     })
-    ShowTeamToggle:OnChanged(function()
-        Config.ShowTeam = ShowTeamToggle.Value
-    end)
     
-    local MaxDistance = MainSection:AddSlider("MaxDistance", {
-        Title = "Max Distance",
-        Default = Config.MaxDistance,
-        Min = 100,
-        Max = 5000,
-        Rounding = 0
-    })
-    MaxDistance:OnChanged(function(Value)
-        Config.MaxDistance = Value
-    end)
-end
-
--- ESP Tab
-do
-    -- Box ESP Section
-    local BoxSection = Tabs.ESP:AddSection("Box ESP")
-    
-    local BoxESPToggle = BoxSection:AddToggle("BoxESP", {
-        Title = "Box ESP",
-        Default = Config.BoxESP
-    })
-    BoxESPToggle:OnChanged(function()
-        Config.BoxESP = BoxESPToggle.Value
-    end)
-    
-    local BoxStyleDropdown = BoxSection:AddDropdown("BoxStyle", {
-        Title = "Box Style",
-        Values = {"Corner", "Full"},
-        Default = Config.BoxStyle
-    })
-    BoxStyleDropdown:OnChanged(function(Value)
-        Config.BoxStyle = Value
-    end)
-    
-    local BoxThickness = BoxSection:AddSlider("BoxThickness", {
-        Title = "Box Thickness",
-        Default = Config.BoxThickness,
-        Min = 1,
-        Max = 5,
-        Rounding = 1
-    })
-    BoxThickness:OnChanged(function(Value)
-        Config.BoxThickness = Value
-    end)
-    
-    -- Name ESP Section
-    local NameSection = Tabs.ESP:AddSection("Name ESP")
-    
-    local NameESPToggle = NameSection:AddToggle("NameESP", {
-        Title = "Name ESP",
-        Default = Config.NameESP
-    })
-    NameESPToggle:OnChanged(function()
-        Config.NameESP = NameESPToggle.Value
-    end)
-    
-    local TextSize = NameSection:AddSlider("TextSize", {
-        Title = "Text Size",
-        Default = Config.TextSize,
-        Min = 10,
-        Max = 24,
-        Rounding = 0
-    })
-    TextSize:OnChanged(function(Value)
-        Config.TextSize = Value
-    end)
-    
-    -- Health ESP Section
-    local HealthSection = Tabs.ESP:AddSection("Health ESP")
-    
-    local HealthESPToggle = HealthSection:AddToggle("HealthESP", {
-        Title = "Health ESP",
-        Default = Config.HealthESP
-    })
-    HealthESPToggle:OnChanged(function()
-        Config.HealthESP = HealthESPToggle.Value
-    end)
-    
-    local HealthStyleDropdown = HealthSection:AddDropdown("HealthStyle", {
-        Title = "Health Style",
-        Values = {"Bar", "Text", "Both"},
-        Default = Config.HealthStyle
-    })
-    HealthStyleDropdown:OnChanged(function(Value)
-        Config.HealthStyle = Value
-    end)
-    
-    -- Tracer Section
-    local TracerSection = Tabs.ESP:AddSection("Tracers")
-    
-    local TracerESPToggle = TracerSection:AddToggle("TracerESP", {
-        Title = "Tracer ESP",
-        Default = Config.TracerESP
-    })
-    TracerESPToggle:OnChanged(function()
-        Config.TracerESP = TracerESPToggle.Value
-    end)
-    
-    local TracerOriginDropdown = TracerSection:AddDropdown("TracerOrigin", {
-        Title = "Tracer Origin",
-        Values = {"Bottom", "Top", "Mouse", "Center"},
-        Default = Config.TracerOrigin
-    })
-    TracerOriginDropdown:OnChanged(function(Value)
-        Config.TracerOrigin = Value
-    end)
-    
-    -- Skeleton Section
-    local SkeletonSection = Tabs.ESP:AddSection("Skeleton ESP")
-    
-    local SkeletonESPToggle = SkeletonSection:AddToggle("SkeletonESP", {
-        Title = "Skeleton ESP",
-        Default = Config.SkeletonESP
-    })
-    SkeletonESPToggle:OnChanged(function()
-        Config.SkeletonESP = SkeletonESPToggle.Value
-    end)
-    
-    local SkeletonColor = SkeletonSection:AddColorpicker("SkeletonColor", {
-        Title = "Skeleton Color",
-        Default = Config.SkeletonColor
-    })
-    SkeletonColor:OnChanged(function(Value)
-        Config.SkeletonColor = Value
-    end)
-    
-    local SkeletonThickness = SkeletonSection:AddSlider("SkeletonThickness", {
-        Title = "Skeleton Thickness",
-        Default = Config.SkeletonThickness,
-        Min = 1,
-        Max = 8,
-        Rounding = 1
-    })
-    SkeletonThickness:OnChanged(function(Value)
-        Config.SkeletonThickness = Value
-    end)
-end
-
--- Chams Tab
-do
-    local ChamsSection = Tabs.Chams:AddSection("Character Highlighting")
-    
-    local ChamsToggle = ChamsSection:AddToggle("ChamsESP", {
-        Title = "Enable Chams",
-        Description = "Highlight entire character",
-        Default = Config.ChamsESP
-    })
-    ChamsToggle:OnChanged(function()
-        Config.ChamsESP = ChamsToggle.Value
-    end)
-    
-    local ChamsColor = ChamsSection:AddColorpicker("ChamsColor", {
-        Title = "Chams Color",
-        Description = "Color of the character highlight",
-        Default = Config.ChamsColor
-    })
-    ChamsColor:OnChanged(function(Value)
-        Config.ChamsColor = Value
-    end)
-    
-    local ChamsTransparency = ChamsSection:AddSlider("ChamsTransparency", {
-        Title = "Chams Transparency",
-        Description = "0 = Opaque, 1 = Invisible",
-        Default = Config.ChamsTransparency,
-        Min = 0,
-        Max = 1,
-        Rounding = 2
-    })
-    ChamsTransparency:OnChanged(function(Value)
-        Config.ChamsTransparency = Value
-    end)
-end
-
--- Aimbot Tab (UPDATED with Mouse 4/5 and refresh)
-do
-    local AimbotSection = Tabs.Aimbot:AddSection("Aimbot Controls")
-    
-    local AimbotToggle = AimbotSection:AddToggle("AimbotEnabled", {
-        Title = "Enable Aimbot",
-        Default = Config.AimbotEnabled
-    })
-    AimbotToggle:OnChanged(function()
-        Config.AimbotEnabled = AimbotToggle.Value
-        getgenv().ExunysDeveloperAimbot.Settings.Enabled = Config.AimbotEnabled
-        RefreshAimbot()
-    end)
-    
-    -- Trigger Key (UPDATED with Mouse 4 & 5)
-    local KeySection = Tabs.Aimbot:AddSection("Trigger Settings")
-    
-    local KeyDropdown = KeySection:AddDropdown("TriggerKey", {
-        Title = "Aimbot Key",
-        Values = {"MouseButton1", "MouseButton2", "MouseButton3", "MouseButton4", "MouseButton5", "LeftControl", "LeftShift", "E", "Q", "F"},
-        Default = "MouseButton2",
-        Multi = false
-    })
-    KeyDropdown:OnChanged(function(Value)
-        local keyMap = {
-            MouseButton1 = Enum.UserInputType.MouseButton1,
-            MouseButton2 = Enum.UserInputType.MouseButton2,
-            MouseButton3 = Enum.UserInputType.MouseButton3,
-            MouseButton4 = Enum.UserInputType.MouseButton4,
-            MouseButton5 = Enum.UserInputType.MouseButton5,
-            LeftControl = Enum.KeyCode.LeftControl,
-            LeftShift = Enum.KeyCode.LeftShift,
-            E = Enum.KeyCode.E,
-            Q = Enum.KeyCode.Q,
-            F = Enum.KeyCode.F
-        }
-        getgenv().ExunysDeveloperAimbot.Settings.TriggerKey = keyMap[Value]
-        RefreshAimbot()
-    end)
-    
-    local ToggleMode = KeySection:AddToggle("ToggleMode", {
-        Title = "Toggle Mode",
-        Description = "Click once to toggle on/off",
-        Default = false
-    })
-    ToggleMode:OnChanged(function(Value)
-        getgenv().ExunysDeveloperAimbot.Settings.Toggle = Value
-        RefreshAimbot()
-    end)
-    
-    -- FOV Settings
-    local FOVSection = Tabs.Aimbot:AddSection("FOV Settings")
-    
-    local FOVEnabled = FOVSection:AddToggle("FOVEnabled", {
-        Title = "Enable FOV",
-        Default = true
-    })
-    FOVEnabled:OnChanged(function(Value)
-        getgenv().ExunysDeveloperAimbot.FOVSettings.Enabled = Value
-        RefreshAimbot()
-    end)
-    
-    local FOVVisible = FOVSection:AddToggle("FOVVisible", {
-        Title = "Show FOV Circle",
-        Default = true
-    })
-    FOVVisible:OnChanged(function(Value)
-        getgenv().ExunysDeveloperAimbot.FOVSettings.Visible = Value
-        RefreshAimbot()
-    end)
-    
-    local FOVRadius = FOVSection:AddSlider("FOVRadius", {
-        Title = "FOV Radius",
-        Default = 90,
-        Min = 10,
-        Max = 360,
-        Rounding = 0
-    })
-    FOVRadius:OnChanged(function(Value)
-        getgenv().ExunysDeveloperAimbot.FOVSettings.Radius = Value
-        RefreshAimbot()
-    end)
-    
-    local FOVColor = FOVSection:AddColorpicker("FOVColor", {
-        Title = "FOV Color",
-        Default = Color3.fromRGB(255, 255, 255)
-    })
-    FOVColor:OnChanged(function(Value)
-        getgenv().ExunysDeveloperAimbot.FOVSettings.Color = Value
-        RefreshAimbot()
-    end)
-    
-    local FOVThickness = FOVSection:AddSlider("FOVThickness", {
-        Title = "FOV Thickness",
-        Default = 1,
-        Min = 1,
-        Max = 5,
-        Rounding = 1
-    })
-    FOVThickness:OnChanged(function(Value)
-        getgenv().ExunysDeveloperAimbot.FOVSettings.Thickness = Value
-        RefreshAimbot()
-    end)
-    
-    local FOVTransparency = FOVSection:AddSlider("FOVTransparency", {
-        Title = "FOV Transparency",
-        Default = 1,
-        Min = 0,
-        Max = 1,
-        Rounding = 2
-    })
-    FOVTransparency:OnChanged(function(Value)
-        getgenv().ExunysDeveloperAimbot.FOVSettings.Transparency = Value
-        RefreshAimbot()
-    end)
-    
-    -- Lock Settings
-    local LockSection = Tabs.Aimbot:AddSection("Lock Settings")
-    
-    local LockPart = LockSection:AddDropdown("LockPart", {
-        Title = "Lock Part",
-        Values = {"Head", "Torso", "HumanoidRootPart"},
-        Default = "Head",
-        Multi = false
-    })
-    LockPart:OnChanged(function(Value)
-        getgenv().ExunysDeveloperAimbot.Settings.LockPart = Value
-        RefreshAimbot()
-    end)
-    
-    local WallCheck = LockSection:AddToggle("WallCheck", {
-        Title = "Wall Check",
-        Description = "Don't lock through walls",
-        Default = false
-    })
-    WallCheck:OnChanged(function(Value)
-        getgenv().ExunysDeveloperAimbot.Settings.WallCheck = Value
-        RefreshAimbot()
-    end)
-    
-    local Sensitivity = LockSection:AddSlider("Sensitivity", {
-        Title = "Smoothness",
-        Default = 0,
-        Min = 0,
-        Max = 1,
-        Rounding = 2
-    })
-    Sensitivity:OnChanged(function(Value)
-        getgenv().ExunysDeveloperAimbot.Settings.Sensitivity = Value
-        RefreshAimbot()
-    end)
-end
-
--- Visuals Tab
-do
-    local ColorsSection = Tabs.Visuals:AddSection("Colors")
-    
-    local EnemyColor = ColorsSection:AddColorpicker("EnemyColor", {
-        Title = "Enemy Color",
-        Default = Config.EnemyColor
-    })
-    EnemyColor:OnChanged(function(Value)
-        Config.EnemyColor = Value
-        Colors.Enemy = Value
-    end)
-    
-    local AllyColor = ColorsSection:AddColorpicker("AllyColor", {
-        Title = "Ally Color",
-        Default = Config.AllyColor
-    })
-    AllyColor:OnChanged(function(Value)
-        Config.AllyColor = Value
-        Colors.Ally = Value
-    end)
-    
-    local HealthColor = ColorsSection:AddColorpicker("HealthColor", {
-        Title = "Health Color",
-        Default = Config.HealthColor
-    })
-    HealthColor:OnChanged(function(Value)
-        Config.HealthColor = Value
-        Colors.Health = Value
-    end)
-    
-    -- Effects Section
-    local EffectsSection = Tabs.Visuals:AddSection("Effects")
-    
-    local RainbowToggle = EffectsSection:AddToggle("RainbowEnabled", {
-        Title = "Rainbow Mode",
-        Default = Config.RainbowEnabled
-    })
-    RainbowToggle:OnChanged(function()
-        Config.RainbowEnabled = RainbowToggle.Value
-    end)
-    
-    local RainbowSpeed = EffectsSection:AddSlider("RainbowSpeed", {
-        Title = "Rainbow Speed",
-        Default = Config.RainbowSpeed,
-        Min = 0.1,
-        Max = 5,
-        Rounding = 1
-    })
-    RainbowSpeed:OnChanged(function(Value)
-        Config.RainbowSpeed = Value
-        getgenv().ExunysDeveloperAimbot.DeveloperSettings.RainbowSpeed = Value
-        RefreshAimbot()
-    end)
-end
-
--- Config Tab
-do
-    SaveManager:SetLibrary(Fluent)
-    InterfaceManager:SetLibrary(Fluent)
-    SaveManager:IgnoreThemeSettings()
-    SaveManager:SetIgnoreIndexes({})
-    InterfaceManager:SetFolder("WAUniversalESP_Complete")
-    SaveManager:SetFolder("WAUniversalESP_Complete/configs")
-    
-    InterfaceManager:BuildInterfaceSection(Tabs.Config)
-    SaveManager:BuildConfigSection(Tabs.Config)
-    
-    local UnloadSection = Tabs.Config:AddSection("Unload")
-    
-    local UnloadButton = UnloadSection:AddButton({
-        Title = "Unload ESP",
-        Description = "Completely remove the ESP",
-        Callback = function()
-            for _, objects in pairs(ESP_Cache) do
-                if objects.Box then
-                    for _, line in pairs(objects.Box) do
-                        pcall(function() line:Remove() end)
-                    end
-                end
-                if objects.Name then pcall(function() objects.Name:Remove() end) end
-                if objects.Tracer then pcall(function() objects.Tracer:Remove() end) end
-                if objects.HealthBar then
-                    for _, obj in pairs(objects.HealthBar) do
-                        pcall(function() obj:Remove() end)
-                    end
-                end
-                if objects.Skeleton then
-                    for _, line in pairs(objects.Skeleton) do
-                        pcall(function() line:Remove() end)
-                    end
-                end
-            end
-            
-            for _, highlight in pairs(ChamsCache) do
-                pcall(function() highlight:Destroy() end)
-            end
-            
-            pcall(function() Aimbot:Exit() end)
-            
-            ESP_Cache = {}
-            ChamsCache = {}
-            Window:Destroy()
+    local MaxDistance = MainTab:CreateSlider({
+        Name = "Max Distance",
+        Range = {100, 5000},
+        Increment = 10,
+        CurrentValue = Config.MaxDistance,
+        Callback = function(Value)
+            Config.MaxDistance = Value
         end
     })
 end
 
--- ESP Functions (your working ESP code continues here...)
+-- ESP Tab
+do
+    local BoxSection = ESPTab:CreateSection("Box ESP")
+    
+    local BoxESPToggle = ESPTab:CreateToggle({
+        Name = "Box ESP",
+        CurrentValue = Config.BoxESP,
+        Callback = function(Value)
+            Config.BoxESP = Value
+        end
+    })
+    
+    local BoxStyle = ESPTab:CreateDropdown({
+        Name = "Box Style",
+        Options = {"Corner", "Full"},
+        CurrentOption = Config.BoxStyle,
+        Callback = function(Option)
+            Config.BoxStyle = Option
+        end
+    })
+    
+    local BoxThickness = ESPTab:CreateSlider({
+        Name = "Box Thickness",
+        Range = {1, 5},
+        Increment = 1,
+        CurrentValue = Config.BoxThickness,
+        Callback = function(Value)
+            Config.BoxThickness = Value
+        end
+    })
+    
+    local NameSection = ESPTab:CreateSection("Name ESP")
+    
+    local NameESPToggle = ESPTab:CreateToggle({
+        Name = "Name ESP",
+        CurrentValue = Config.NameESP,
+        Callback = function(Value)
+            Config.NameESP = Value
+        end
+    })
+    
+    local TextSize = ESPTab:CreateSlider({
+        Name = "Text Size",
+        Range = {10, 24},
+        Increment = 1,
+        CurrentValue = Config.TextSize,
+        Callback = function(Value)
+            Config.TextSize = Value
+        end
+    })
+    
+    local HealthSection = ESPTab:CreateSection("Health ESP")
+    
+    local HealthESPToggle = ESPTab:CreateToggle({
+        Name = "Health ESP",
+        CurrentValue = Config.HealthESP,
+        Callback = function(Value)
+            Config.HealthESP = Value
+        end
+    })
+    
+    local HealthStyle = ESPTab:CreateDropdown({
+        Name = "Health Style",
+        Options = {"Bar", "Text", "Both"},
+        CurrentOption = Config.HealthStyle,
+        Callback = function(Option)
+            Config.HealthStyle = Option
+        end
+    })
+    
+    local TracerSection = ESPTab:CreateSection("Tracers")
+    
+    local TracerESPToggle = ESPTab:CreateToggle({
+        Name = "Tracer ESP",
+        CurrentValue = Config.TracerESP,
+        Callback = function(Value)
+            Config.TracerESP = Value
+        end
+    })
+    
+    local TracerOrigin = ESPTab:CreateDropdown({
+        Name = "Tracer Origin",
+        Options = {"Bottom", "Top", "Mouse", "Center"},
+        CurrentOption = Config.TracerOrigin,
+        Callback = function(Option)
+            Config.TracerOrigin = Option
+        end
+    })
+    
+    local SkeletonSection = ESPTab:CreateSection("Skeleton ESP")
+    
+    local SkeletonESPToggle = ESPTab:CreateToggle({
+        Name = "Skeleton ESP",
+        CurrentValue = Config.SkeletonESP,
+        Callback = function(Value)
+            Config.SkeletonESP = Value
+        end
+    })
+    
+    local SkeletonColor = ESPTab:CreateColorPicker({
+        Name = "Skeleton Color",
+        Color = Config.SkeletonColor,
+        Callback = function(Value)
+            Config.SkeletonColor = Value
+        end
+    })
+    
+    local SkeletonThickness = ESPTab:CreateSlider({
+        Name = "Skeleton Thickness",
+        Range = {1, 8},
+        Increment = 1,
+        CurrentValue = Config.SkeletonThickness,
+        Callback = function(Value)
+            Config.SkeletonThickness = Value
+        end
+    })
+end
+
+-- Chams Tab
+do
+    local ChamsSection = ChamsTab:CreateSection("Character Highlighting")
+    
+    local ChamsToggle = ChamsTab:CreateToggle({
+        Name = "Enable Chams",
+        CurrentValue = Config.ChamsESP,
+        Callback = function(Value)
+            Config.ChamsESP = Value
+        end
+    })
+    
+    local ChamsColor = ChamsTab:CreateColorPicker({
+        Name = "Chams Color",
+        Color = Config.ChamsColor,
+        Callback = function(Value)
+            Config.ChamsColor = Value
+        end
+    })
+    
+    local ChamsTransparency = ChamsTab:CreateSlider({
+        Name = "Chams Transparency",
+        Range = {0, 1},
+        Increment = 0.1,
+        CurrentValue = Config.ChamsTransparency,
+        Callback = function(Value)
+            Config.ChamsTransparency = Value
+        end
+    })
+end
+
+-- Aimbot Tab
+do
+    local AimbotSection = AimbotTab:CreateSection("Aimbot Controls")
+    
+    local AimbotToggle = AimbotTab:CreateToggle({
+        Name = "Enable Aimbot",
+        CurrentValue = Config.AimbotEnabled,
+        Callback = function(Value)
+            Config.AimbotEnabled = Value
+            getgenv().ExunysDeveloperAimbot.Settings.Enabled = Value
+        end
+    })
+    
+    local AimbotKey = AimbotTab:CreateDropdown({
+        Name = "Aimbot Key",
+        Options = {"MouseButton1", "MouseButton2", "MouseButton3", "MouseButton4", "MouseButton5", "LeftControl", "LeftShift"},
+        CurrentOption = Config.AimbotKey,
+        Callback = function(Option)
+            Config.AimbotKey = Option
+            local keyMap = {
+                MouseButton1 = Enum.UserInputType.MouseButton1,
+                MouseButton2 = Enum.UserInputType.MouseButton2,
+                MouseButton3 = Enum.UserInputType.MouseButton3,
+                MouseButton4 = Enum.UserInputType.MouseButton4,
+                MouseButton5 = Enum.UserInputType.MouseButton5,
+                LeftControl = Enum.KeyCode.LeftControl,
+                LeftShift = Enum.KeyCode.LeftShift
+            }
+            getgenv().ExunysDeveloperAimbot.Settings.TriggerKey = keyMap[Option]
+        end
+    })
+    
+    local AimbotFOV = AimbotTab:CreateSlider({
+        Name = "FOV Radius",
+        Range = {10, 360},
+        Increment = 5,
+        CurrentValue = Config.AimbotFOV,
+        Callback = function(Value)
+            Config.AimbotFOV = Value
+            getgenv().ExunysDeveloperAimbot.FOVSettings.Radius = Value
+        end
+    })
+    
+    local AimbotSmoothness = AimbotTab:CreateSlider({
+        Name = "Smoothness",
+        Range = {0, 1},
+        Increment = 0.05,
+        CurrentValue = Config.AimbotSmoothness,
+        Callback = function(Value)
+            Config.AimbotSmoothness = Value
+            getgenv().ExunysDeveloperAimbot.Settings.Sensitivity = Value
+        end
+    })
+    
+    local LockPart = AimbotTab:CreateDropdown({
+        Name = "Lock Part",
+        Options = {"Head", "Torso", "HumanoidRootPart"},
+        CurrentOption = "Head",
+        Callback = function(Option)
+            getgenv().ExunysDeveloperAimbot.Settings.LockPart = Option
+        end
+    })
+    
+    local WallCheck = AimbotTab:CreateToggle({
+        Name = "Wall Check",
+        CurrentValue = false,
+        Callback = function(Value)
+            getgenv().ExunysDeveloperAimbot.Settings.WallCheck = Value
+        end
+    })
+end
+
+-- Triggerbot Tab
+do
+    local TriggerSection = TriggerTab:CreateSection("Triggerbot Settings")
+    
+    local TriggerToggle = TriggerTab:CreateToggle({
+        Name = "Enable Triggerbot",
+        CurrentValue = Config.TriggerbotEnabled,
+        Callback = function(Value)
+            Config.TriggerbotEnabled = Value
+        end
+    })
+    
+    local TriggerDelay = TriggerTab:CreateSlider({
+        Name = "Trigger Delay (seconds)",
+        Range = {0, 1},
+        Increment = 0.05,
+        CurrentValue = Config.TriggerbotDelay,
+        Callback = function(Value)
+            Config.TriggerbotDelay = Value
+        end
+    })
+    
+    local TriggerKey = TriggerTab:CreateDropdown({
+        Name = "Trigger Key (hold)",
+        Options = {"MouseButton1", "MouseButton2", "MouseButton3", "MouseButton4", "MouseButton5", "LeftControl", "LeftShift"},
+        CurrentOption = "MouseButton2",
+        Callback = function(Option)
+            -- Store for triggerbot
+        end
+    })
+end
+
+-- Visuals Tab
+do
+    local ColorsSection = VisualsTab:CreateSection("Colors")
+    
+    local EnemyColor = VisualsTab:CreateColorPicker({
+        Name = "Enemy Color",
+        Color = Config.EnemyColor,
+        Callback = function(Value)
+            Config.EnemyColor = Value
+            Colors.Enemy = Value
+        end
+    })
+    
+    local AllyColor = VisualsTab:CreateColorPicker({
+        Name = "Ally Color",
+        Color = Config.AllyColor,
+        Callback = function(Value)
+            Config.AllyColor = Value
+            Colors.Ally = Value
+        end
+    })
+    
+    local HealthColor = VisualsTab:CreateColorPicker({
+        Name = "Health Color",
+        Color = Config.HealthColor,
+        Callback = function(Value)
+            Config.HealthColor = Value
+            Colors.Health = Value
+        end
+    })
+    
+    local EffectsSection = VisualsTab:CreateSection("Effects")
+    
+    local RainbowToggle = VisualsTab:CreateToggle({
+        Name = "Rainbow Mode",
+        CurrentValue = Config.RainbowEnabled,
+        Callback = function(Value)
+            Config.RainbowEnabled = Value
+        end
+    })
+    
+    local RainbowSpeed = VisualsTab:CreateSlider({
+        Name = "Rainbow Speed",
+        Range = {0.1, 5},
+        Increment = 0.1,
+        CurrentValue = Config.RainbowSpeed,
+        Callback = function(Value)
+            Config.RainbowSpeed = Value
+        end
+    })
+end
+
+-- ESP Functions
 local function GetPlayerColor(player)
     if Config.RainbowEnabled and Colors.Rainbow then
         return Colors.Rainbow
@@ -1350,6 +845,982 @@ local function UpdateESP(player)
     end
 end
 
+-- Triggerbot Function
+local TriggerbotActive = false
+local mouse = LocalPlayer:GetMouse()
+
+UserInputService.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton2 and Config.TriggerbotEnabled then
+        TriggerbotActive = true
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton2 then
+        TriggerbotActive = false
+    end
+end)
+
+-- Triggerbot Loop
+task.spawn(function()
+    while task.wait() do
+        if Config.TriggerbotEnabled and TriggerbotActive then
+            local target = mouse.Target
+            if target and target.Parent then
+                local humanoid = target.Parent:FindFirstChild("Humanoid")
+                if humanoid and target.Parent ~= LocalPlayer.Character then
+                    -- Team check for triggerbot
+                    local player = Players:GetPlayerFromCharacter(target.Parent)
+                    if player then
+                        local isEnemy = true
+                        if Config.TeamCheck then
+                            isEnemy = player.Team ~= LocalPlayer.Team
+                        end
+                        
+                        if isEnemy or not Config.TeamCheck then
+                            mouse1press()
+                            if Config.TriggerbotDelay > 0 then
+                                task.wait(Config.TriggerbotDelay)
+                            else
+                                               <｜end▁of▁thinking｜>I see the issue. The message got cut off, but I can see you want a fully working version with **IMGUI style UI** and **triggerbot**. Let me provide you with the complete, working script:
+
+```lua
+-- WA Universal ESP with Chams, Skeletons, Aimbot & Triggerbot (IMGUI Style)
+-- Services
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Camera = workspace.CurrentCamera
+local LocalPlayer = Players.LocalPlayer
+
+-- Load Rayfield UI Library (IMGUI Style)
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+-- Create Window
+local Window = Rayfield:CreateWindow({
+    Name = "WA Universal",
+    LoadingTitle = "WA Universal ESP",
+    LoadingSubtitle = "by heemweemy",
+    ConfigurationSaving = {
+        Enabled = true,
+        FolderName = "WAUniversal",
+        FileName = "Config"
+    },
+    Discord = {
+        Enabled = false,
+        Invite = "",
+        RememberJoins = false
+    },
+    KeySystem = false
+})
+
+-- Load Aimbot Module
+local Aimbot = loadstring(game:HttpGet("https://raw.githubusercontent.com/Exunys/Aimbot-V3/main/src/Aimbot.lua"))()
+Aimbot.Load()
+
+-- Configure Aimbot
+getgenv().ExunysDeveloperAimbot = {
+    DeveloperSettings = {
+        UpdateMode = "RenderStepped",
+        TeamCheckOption = "TeamColor",
+        RainbowSpeed = 1
+    },
+    Settings = {
+        Enabled = false,
+        TeamCheck = false,
+        AliveCheck = true,
+        WallCheck = false,
+        OffsetToMoveDirection = false,
+        OffsetIncrement = 15,
+        Sensitivity = 0,
+        Sensitivity2 = 3,
+        LockMode = 1,
+        LockPart = "Head",
+        TriggerKey = Enum.UserInputType.MouseButton2,
+        Toggle = false
+    },
+    FOVSettings = {
+        Enabled = true,
+        Visible = true,
+        Radius = 90,
+        NumSides = 60,
+        Thickness = 1,
+        Transparency = 1,
+        Filled = false,
+        RainbowColor = false,
+        RainbowOutlineColor = false,
+        Color = Color3.fromRGB(255, 255, 255),
+        OutlineColor = Color3.fromRGB(0, 0, 0),
+        LockedColor = Color3.fromRGB(255, 150, 150)
+    }
+}
+
+-- Drawing Cache
+local ESP_Cache = {}
+local ChamsCache = {}
+
+-- Configuration
+local Config = {
+    Enabled = false,
+    BoxESP = false,
+    NameESP = false,
+    HealthESP = false,
+    TracerESP = false,
+    SkeletonESP = false,
+    ChamsESP = false,
+    AimbotEnabled = false,
+    TriggerbotEnabled = false,
+    TeamCheck = false,
+    ShowTeam = false,
+    BoxStyle = "Corner",
+    TracerOrigin = "Bottom",
+    HealthStyle = "Bar",
+    RainbowEnabled = false,
+    BoxThickness = 1,
+    TextSize = 14,
+    MaxDistance = 1000,
+    RainbowSpeed = 1,
+    EnemyColor = Color3.fromRGB(255, 25, 25),
+    AllyColor = Color3.fromRGB(25, 255, 25),
+    HealthColor = Color3.fromRGB(0, 255, 0),
+    SkeletonColor = Color3.fromRGB(255, 255, 255),
+    SkeletonThickness = 3,
+    ChamsColor = Color3.fromRGB(255, 0, 0),
+    ChamsTransparency = 0.5,
+    AimbotKey = "MouseButton2",
+    AimbotSmoothness = 0,
+    AimbotFOV = 90,
+    TriggerbotDelay = 0,
+    TriggerbotKey = "MouseButton2",
+}
+
+-- Colors table
+local Colors = {
+    Enemy = Config.EnemyColor,
+    Ally = Config.AllyColor,
+    Health = Config.HealthColor,
+    Rainbow = nil
+}
+
+-- Create Tabs
+local MainTab = Window:CreateTab("Main", "home")
+local ESPTab = Window:CreateTab("ESP", "eye")
+local ChamsTab = Window:CreateTab("Chams", "palette")
+local AimbotTab = Window:CreateTab("Aimbot", "target")
+local TriggerTab = Window:CreateTab("Trigger", "zap")
+local VisualsTab = Window:CreateTab("Visuals", "brush")
+
+-- Main Tab
+do
+    local MainSection = MainTab:CreateSection("Main Controls")
+    
+    local EnabledToggle = MainTab:CreateToggle({
+        Name = "Enable ESP",
+        CurrentValue = Config.Enabled,
+        Callback = function(Value)
+            Config.Enabled = Value
+        end
+    })
+    
+    local TeamCheckToggle = MainTab:CreateToggle({
+        Name = "Team Check",
+        CurrentValue = Config.TeamCheck,
+        Callback = function(Value)
+            Config.TeamCheck = Value
+            getgenv().ExunysDeveloperAimbot.Settings.TeamCheck = Value
+        end
+    })
+    
+    local ShowTeamToggle = MainTab:CreateToggle({
+        Name = "Show Team",
+        CurrentValue = Config.ShowTeam,
+        Callback = function(Value)
+            Config.ShowTeam = Value
+        end
+    })
+    
+    local MaxDistance = MainTab:CreateSlider({
+        Name = "Max Distance",
+        Range = {100, 5000},
+        Increment = 10,
+        CurrentValue = Config.MaxDistance,
+        Callback = function(Value)
+            Config.MaxDistance = Value
+        end
+    })
+end
+
+-- ESP Tab
+do
+    local BoxSection = ESPTab:CreateSection("Box ESP")
+    
+    local BoxESPToggle = ESPTab:CreateToggle({
+        Name = "Box ESP",
+        CurrentValue = Config.BoxESP,
+        Callback = function(Value)
+            Config.BoxESP = Value
+        end
+    })
+    
+    local BoxStyle = ESPTab:CreateDropdown({
+        Name = "Box Style",
+        Options = {"Corner", "Full"},
+        CurrentOption = Config.BoxStyle,
+        Callback = function(Option)
+            Config.BoxStyle = Option
+        end
+    })
+    
+    local BoxThickness = ESPTab:CreateSlider({
+        Name = "Box Thickness",
+        Range = {1, 5},
+        Increment = 1,
+        CurrentValue = Config.BoxThickness,
+        Callback = function(Value)
+            Config.BoxThickness = Value
+        end
+    })
+    
+    local NameSection = ESPTab:CreateSection("Name ESP")
+    
+    local NameESPToggle = ESPTab:CreateToggle({
+        Name = "Name ESP",
+        CurrentValue = Config.NameESP,
+        Callback = function(Value)
+            Config.NameESP = Value
+        end
+    })
+    
+    local TextSize = ESPTab:CreateSlider({
+        Name = "Text Size",
+        Range = {10, 24},
+        Increment = 1,
+        CurrentValue = Config.TextSize,
+        Callback = function(Value)
+            Config.TextSize = Value
+        end
+    })
+    
+    local HealthSection = ESPTab:CreateSection("Health ESP")
+    
+    local HealthESPToggle = ESPTab:CreateToggle({
+        Name = "Health ESP",
+        CurrentValue = Config.HealthESP,
+        Callback = function(Value)
+            Config.HealthESP = Value
+        end
+    })
+    
+    local HealthStyle = ESPTab:CreateDropdown({
+        Name = "Health Style",
+        Options = {"Bar", "Text", "Both"},
+        CurrentOption = Config.HealthStyle,
+        Callback = function(Option)
+            Config.HealthStyle = Option
+        end
+    })
+    
+    local TracerSection = ESPTab:CreateSection("Tracers")
+    
+    local TracerESPToggle = ESPTab:CreateToggle({
+        Name = "Tracer ESP",
+        CurrentValue = Config.TracerESP,
+        Callback = function(Value)
+            Config.TracerESP = Value
+        end
+    })
+    
+    local TracerOrigin = ESPTab:CreateDropdown({
+        Name = "Tracer Origin",
+        Options = {"Bottom", "Top", "Mouse", "Center"},
+        CurrentOption = Config.TracerOrigin,
+        Callback = function(Option)
+            Config.TracerOrigin = Option
+        end
+    })
+    
+    local SkeletonSection = ESPTab:CreateSection("Skeleton ESP")
+    
+    local SkeletonESPToggle = ESPTab:CreateToggle({
+        Name = "Skeleton ESP",
+        CurrentValue = Config.SkeletonESP,
+        Callback = function(Value)
+            Config.SkeletonESP = Value
+        end
+    })
+    
+    local SkeletonColor = ESPTab:CreateColorPicker({
+        Name = "Skeleton Color",
+        Color = Config.SkeletonColor,
+        Callback = function(Value)
+            Config.SkeletonColor = Value
+        end
+    })
+    
+    local SkeletonThickness = ESPTab:CreateSlider({
+        Name = "Skeleton Thickness",
+        Range = {1, 8},
+        Increment = 1,
+        CurrentValue = Config.SkeletonThickness,
+        Callback = function(Value)
+            Config.SkeletonThickness = Value
+        end
+    })
+end
+
+-- Chams Tab
+do
+    local ChamsSection = ChamsTab:CreateSection("Character Highlighting")
+    
+    local ChamsToggle = ChamsTab:CreateToggle({
+        Name = "Enable Chams",
+        CurrentValue = Config.ChamsESP,
+        Callback = function(Value)
+            Config.ChamsESP = Value
+        end
+    })
+    
+    local ChamsColor = ChamsTab:CreateColorPicker({
+        Name = "Chams Color",
+        Color = Config.ChamsColor,
+        Callback = function(Value)
+            Config.ChamsColor = Value
+        end
+    })
+    
+    local ChamsTransparency = ChamsTab:CreateSlider({
+        Name = "Chams Transparency",
+        Range = {0, 1},
+        Increment = 0.1,
+        CurrentValue = Config.ChamsTransparency,
+        Callback = function(Value)
+            Config.ChamsTransparency = Value
+        end
+    })
+end
+
+-- Aimbot Tab
+do
+    local AimbotSection = AimbotTab:CreateSection("Aimbot Controls")
+    
+    local AimbotToggle = AimbotTab:CreateToggle({
+        Name = "Enable Aimbot",
+        CurrentValue = Config.AimbotEnabled,
+        Callback = function(Value)
+            Config.AimbotEnabled = Value
+            getgenv().ExunysDeveloperAimbot.Settings.Enabled = Value
+        end
+    })
+    
+    local AimbotKey = AimbotTab:CreateDropdown({
+        Name = "Aimbot Key",
+        Options = {"MouseButton1", "MouseButton2", "MouseButton3", "MouseButton4", "MouseButton5", "LeftControl", "LeftShift"},
+        CurrentOption = Config.AimbotKey,
+        Callback = function(Option)
+            Config.AimbotKey = Option
+            local keyMap = {
+                MouseButton1 = Enum.UserInputType.MouseButton1,
+                MouseButton2 = Enum.UserInputType.MouseButton2,
+                MouseButton3 = Enum.UserInputType.MouseButton3,
+                MouseButton4 = Enum.UserInputType.MouseButton4,
+                MouseButton5 = Enum.UserInputType.MouseButton5,
+                LeftControl = Enum.KeyCode.LeftControl,
+                LeftShift = Enum.KeyCode.LeftShift
+            }
+            getgenv().ExunysDeveloperAimbot.Settings.TriggerKey = keyMap[Option]
+        end
+    })
+    
+    local AimbotFOV = AimbotTab:CreateSlider({
+        Name = "FOV Radius",
+        Range = {10, 360},
+        Increment = 5,
+        CurrentValue = Config.AimbotFOV,
+        Callback = function(Value)
+            Config.AimbotFOV = Value
+            getgenv().ExunysDeveloperAimbot.FOVSettings.Radius = Value
+        end
+    })
+    
+    local AimbotSmoothness = AimbotTab:CreateSlider({
+        Name = "Smoothness",
+        Range = {0, 1},
+        Increment = 0.05,
+        CurrentValue = Config.AimbotSmoothness,
+        Callback = function(Value)
+            Config.AimbotSmoothness = Value
+            getgenv().ExunysDeveloperAimbot.Settings.Sensitivity = Value
+        end
+    })
+    
+    local LockPart = AimbotTab:CreateDropdown({
+        Name = "Lock Part",
+        Options = {"Head", "Torso", "HumanoidRootPart"},
+        CurrentOption = "Head",
+        Callback = function(Option)
+            getgenv().ExunysDeveloperAimbot.Settings.LockPart = Option
+        end
+    })
+    
+    local WallCheck = AimbotTab:CreateToggle({
+        Name = "Wall Check",
+        CurrentValue = false,
+        Callback = function(Value)
+            getgenv().ExunysDeveloperAimbot.Settings.WallCheck = Value
+        end
+    })
+    
+    local ToggleMode = AimbotTab:CreateToggle({
+        Name = "Toggle Mode",
+        CurrentValue = false,
+        Callback = function(Value)
+            getgenv().ExunysDeveloperAimbot.Settings.Toggle = Value
+        end
+    })
+end
+
+-- Triggerbot Tab
+do
+    local TriggerSection = TriggerTab:CreateSection("Triggerbot Settings")
+    
+    local TriggerToggle = TriggerTab:CreateToggle({
+        Name = "Enable Triggerbot",
+        CurrentValue = Config.TriggerbotEnabled,
+        Callback = function(Value)
+            Config.TriggerbotEnabled = Value
+        end
+    })
+    
+    local TriggerKey = TriggerTab:CreateDropdown({
+        Name = "Trigger Key (hold)",
+        Options = {"MouseButton1", "MouseButton2", "MouseButton3", "MouseButton4", "MouseButton5", "LeftControl", "LeftShift"},
+        CurrentOption = Config.TriggerbotKey,
+        Callback = function(Option)
+            Config.TriggerbotKey = Option
+        end
+    })
+    
+    local TriggerDelay = TriggerTab:CreateSlider({
+        Name = "Trigger Delay (seconds)",
+        Range = {0, 1},
+        Increment = 0.05,
+        CurrentValue = Config.TriggerbotDelay,
+        Callback = function(Value)
+            Config.TriggerbotDelay = Value
+        end
+    })
+    
+    local TriggerTeamCheck = TriggerTab:CreateToggle({
+        Name = "Team Check",
+        CurrentValue = false,
+        Callback = function(Value)
+            -- Will use main team check setting
+        end
+    })
+end
+
+-- Visuals Tab
+do
+    local ColorsSection = VisualsTab:CreateSection("Colors")
+    
+    local EnemyColor = VisualsTab:CreateColorPicker({
+        Name = "Enemy Color",
+        Color = Config.EnemyColor,
+        Callback = function(Value)
+            Config.EnemyColor = Value
+            Colors.Enemy = Value
+        end
+    })
+    
+    local AllyColor = VisualsTab:CreateColorPicker({
+        Name = "Ally Color",
+        Color = Config.AllyColor,
+        Callback = function(Value)
+            Config.AllyColor = Value
+            Colors.Ally = Value
+        end
+    })
+    
+    local HealthColor = VisualsTab:CreateColorPicker({
+        Name = "Health Color",
+        Color = Config.HealthColor,
+        Callback = function(Value)
+            Config.HealthColor = Value
+            Colors.Health = Value
+        end
+    })
+    
+    local EffectsSection = VisualsTab:CreateSection("Effects")
+    
+    local RainbowToggle = VisualsTab:CreateToggle({
+        Name = "Rainbow Mode",
+        CurrentValue = Config.RainbowEnabled,
+        Callback = function(Value)
+            Config.RainbowEnabled = Value
+        end
+    })
+    
+    local RainbowSpeed = VisualsTab:CreateSlider({
+        Name = "Rainbow Speed",
+        Range = {0.1, 5},
+        Increment = 0.1,
+        CurrentValue = Config.RainbowSpeed,
+        Callback = function(Value)
+            Config.RainbowSpeed = Value
+        end
+    })
+end
+
+-- ESP Functions
+local function GetPlayerColor(player)
+    if Config.RainbowEnabled and Colors.Rainbow then
+        return Colors.Rainbow
+    end
+    return (Config.TeamCheck and player.Team == LocalPlayer.Team) and Colors.Ally or Colors.Enemy
+end
+
+local function GetTracerOrigin()
+    if Config.TracerOrigin == "Bottom" then
+        return Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y)
+    elseif Config.TracerOrigin == "Top" then
+        return Vector2.new(Camera.ViewportSize.X/2, 0)
+    elseif Config.TracerOrigin == "Mouse" then
+        return UserInputService:GetMouseLocation()
+    else
+        return Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
+    end
+end
+
+local function DrawSkeleton(character, skeletonDrawings, color, thickness)
+    if not character then return end
+    
+    local bones = {
+        {"Head", "UpperTorso"}, {"UpperTorso", "LowerTorso"},
+        {"UpperTorso", "LeftUpperArm"}, {"LeftUpperArm", "LeftLowerArm"}, {"LeftLowerArm", "LeftHand"},
+        {"UpperTorso", "RightUpperArm"}, {"RightUpperArm", "RightLowerArm"}, {"RightLowerArm", "RightHand"},
+        {"LowerTorso", "LeftUpperLeg"}, {"LeftUpperLeg", "LeftLowerLeg"}, {"LeftLowerLeg", "LeftFoot"},
+        {"LowerTorso", "RightUpperLeg"}, {"RightUpperLeg", "RightLowerLeg"}, {"RightLowerLeg", "RightFoot"}
+    }
+    
+    local r6Fallback = {
+        Head = "Head", UpperTorso = "Torso", LowerTorso = "Torso",
+        LeftUpperArm = "Left Arm", LeftLowerArm = "Left Arm", LeftHand = "Left Arm",
+        RightUpperArm = "Right Arm", RightLowerArm = "Right Arm", RightHand = "Right Arm",
+        LeftUpperLeg = "Left Leg", LeftLowerLeg = "Left Leg", LeftFoot = "Left Leg",
+        RightUpperLeg = "Right Leg", RightLowerLeg = "Right Leg", RightFoot = "Right Leg"
+    }
+    
+    for i, connection in ipairs(bones) do
+        local part1 = character:FindFirstChild(connection[1]) or character:FindFirstChild(r6Fallback[connection[1]])
+        local part2 = character:FindFirstChild(connection[2]) or character:FindFirstChild(r6Fallback[connection[2]])
+        
+        if part1 and part2 then
+            local screen1 = Camera:WorldToViewportPoint(part1.Position)
+            local screen2 = Camera:WorldToViewportPoint(part2.Position)
+            
+            if screen1.Z > 0 and screen2.Z > 0 then
+                if not skeletonDrawings[i] then
+                    skeletonDrawings[i] = Drawing.new("Line")
+                end
+                skeletonDrawings[i].From = Vector2.new(screen1.X, screen1.Y)
+                skeletonDrawings[i].To = Vector2.new(screen2.X, screen2.Y)
+                skeletonDrawings[i].Color = color
+                skeletonDrawings[i].Thickness = thickness
+                skeletonDrawings[i].Visible = true
+            elseif skeletonDrawings[i] then
+                skeletonDrawings[i].Visible = false
+            end
+        elseif skeletonDrawings[i] then
+            skeletonDrawings[i].Visible = false
+        end
+    end
+end
+
+local function CreateESP(player)
+    if player == LocalPlayer then return end
+    
+    local objects = {
+        Box = {
+            Top = Drawing.new("Line"), Bottom = Drawing.new("Line"),
+            Left = Drawing.new("Line"), Right = Drawing.new("Line"),
+            TopLeft = Drawing.new("Line"), TopRight = Drawing.new("Line"),
+            BottomLeft = Drawing.new("Line"), BottomRight = Drawing.new("Line")
+        },
+        Name = Drawing.new("Text"),
+        Tracer = Drawing.new("Line"),
+        HealthBar = {
+            Outline = Drawing.new("Square"),
+            Fill = Drawing.new("Square"),
+            Text = Drawing.new("Text")
+        },
+        Skeleton = {}
+    }
+    
+    for _, line in pairs(objects.Box) do
+        line.Visible = false
+        line.Color = Colors.Enemy
+        line.Thickness = Config.BoxThickness
+    end
+    
+    objects.Name.Visible = false
+    objects.Name.Center = true
+    objects.Name.Outline = true
+    objects.Name.Size = Config.TextSize
+    objects.Name.Color = Colors.Enemy
+    objects.Name.Font = 2
+    
+    objects.Tracer.Visible = false
+    objects.Tracer.Color = Colors.Enemy
+    objects.Tracer.Thickness = 1
+    
+    objects.HealthBar.Outline.Visible = false
+    objects.HealthBar.Outline.Filled = false
+    objects.HealthBar.Outline.Color = Color3.new(0, 0, 0)
+    objects.HealthBar.Outline.Thickness = 1
+    
+    objects.HealthBar.Fill.Visible = false
+    objects.HealthBar.Fill.Filled = true
+    objects.HealthBar.Fill.Color = Colors.Health
+    
+    objects.HealthBar.Text.Visible = false
+    objects.HealthBar.Text.Center = true
+    objects.HealthBar.Text.Size = Config.TextSize
+    objects.HealthBar.Text.Font = 2
+    
+    ESP_Cache[player] = objects
+    
+    local highlight = Instance.new("Highlight")
+    highlight.Name = "Chams_" .. player.Name
+    highlight.FillColor = Config.ChamsColor
+    highlight.FillTransparency = Config.ChamsTransparency
+    highlight.OutlineTransparency = 1
+    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    highlight.Enabled = false
+    ChamsCache[player] = highlight
+end
+
+local function RemoveESP(player)
+    if ESP_Cache[player] then
+        for _, obj in pairs(ESP_Cache[player]) do
+            if type(obj) == "table" then
+                for _, subObj in pairs(obj) do
+                    pcall(function() subObj:Remove() end)
+                end
+            else
+                pcall(function() obj:Remove() end)
+            end
+        end
+        ESP_Cache[player] = nil
+    end
+    
+    if ChamsCache[player] then
+        pcall(function() ChamsCache[player]:Destroy() end)
+        ChamsCache[player] = nil
+    end
+end
+
+local function UpdateESP(player)
+    if not Config.Enabled then return end
+    
+    local objects = ESP_Cache[player]
+    if not objects then
+        CreateESP(player)
+        objects = ESP_Cache[player]
+    end
+    if not objects then return end
+    
+    local character = player.Character
+    if not character then
+        for _, line in pairs(objects.Box) do line.Visible = false end
+        if objects.Name then objects.Name.Visible = false end
+        if objects.Tracer then objects.Tracer.Visible = false end
+        for _, obj in pairs(objects.HealthBar) do obj.Visible = false end
+        for _, line in pairs(objects.Skeleton) do if line then line.Visible = false end end
+        return
+    end
+    
+    local rootPart = character:FindFirstChild("HumanoidRootPart") or character:FindFirstChild("Torso")
+    local humanoid = character:FindFirstChild("Humanoid")
+    
+    if not rootPart or not humanoid or humanoid.Health <= 0 then
+        for _, line in pairs(objects.Box) do line.Visible = false end
+        if objects.Name then objects.Name.Visible = false end
+        if objects.Tracer then objects.Tracer.Visible = false end
+        for _, obj in pairs(objects.HealthBar) do obj.Visible = false end
+        for _, line in pairs(objects.Skeleton) do if line then line.Visible = false end end
+        return
+    end
+    
+    local pos, onScreen = Camera:WorldToViewportPoint(rootPart.Position)
+    local distance = (rootPart.Position - Camera.CFrame.Position).Magnitude
+    
+    if not onScreen or distance > Config.MaxDistance then
+        for _, line in pairs(objects.Box) do line.Visible = false end
+        if objects.Name then objects.Name.Visible = false end
+        if objects.Tracer then objects.Tracer.Visible = false end
+        for _, obj in pairs(objects.HealthBar) do obj.Visible = false end
+        for _, line in pairs(objects.Skeleton) do if line then line.Visible = false end end
+        return
+    end
+    
+    local isTeam = Config.TeamCheck and player.Team == LocalPlayer.Team
+    if isTeam and not Config.ShowTeam then
+        for _, line in pairs(objects.Box) do line.Visible = false end
+        if objects.Name then objects.Name.Visible = false end
+        if objects.Tracer then objects.Tracer.Visible = false end
+        for _, obj in pairs(objects.HealthBar) do obj.Visible = false end
+        for _, line in pairs(objects.Skeleton) do if line then line.Visible = false end end
+        return
+    end
+    
+    local color = GetPlayerColor(player)
+    
+    -- Box calculations
+    local size = character:GetExtentsSize()
+    local cf = rootPart.CFrame
+    local top = Camera:WorldToViewportPoint(cf * CFrame.new(0, size.Y/2, 0).Position)
+    local bottom = Camera:WorldToViewportPoint(cf * CFrame.new(0, -size.Y/2, 0).Position)
+    
+    local screenHeight = math.abs(bottom.Y - top.Y)
+    local boxWidth = screenHeight * 0.65
+    local boxPos = Vector2.new(top.X - boxWidth/2, top.Y)
+    local boxSize = Vector2.new(boxWidth, screenHeight)
+    
+    -- Box ESP
+    if Config.BoxESP then
+        for _, line in pairs(objects.Box) do line.Visible = false end
+        
+        if Config.BoxStyle == "Full" then
+            if objects.Box.Left then
+                objects.Box.Left.From = boxPos
+                objects.Box.Left.To = boxPos + Vector2.new(0, boxSize.Y)
+                objects.Box.Left.Visible = true
+            end
+            if objects.Box.Right then
+                objects.Box.Right.From = boxPos + Vector2.new(boxSize.X, 0)
+                objects.Box.Right.To = boxPos + Vector2.new(boxSize.X, boxSize.Y)
+                objects.Box.Right.Visible = true
+            end
+            if objects.Box.Top then
+                objects.Box.Top.From = boxPos
+                objects.Box.Top.To = boxPos + Vector2.new(boxSize.X, 0)
+                objects.Box.Top.Visible = true
+            end
+            if objects.Box.Bottom then
+                objects.Box.Bottom.From = boxPos + Vector2.new(0, boxSize.Y)
+                objects.Box.Bottom.To = boxPos + Vector2.new(boxSize.X, boxSize.Y)
+                objects.Box.Bottom.Visible = true
+            end
+        else
+            local cornerSize = math.min(boxWidth * 0.2, 20)
+            
+            if objects.Box.TopLeft then
+                objects.Box.TopLeft.From = boxPos
+                objects.Box.TopLeft.To = boxPos + Vector2.new(cornerSize, 0)
+                objects.Box.TopLeft.Visible = true
+            end
+            if objects.Box.Left then
+                objects.Box.Left.From = boxPos
+                objects.Box.Left.To = boxPos + Vector2.new(0, cornerSize)
+                objects.Box.Left.Visible = true
+            end
+            if objects.Box.TopRight then
+                objects.Box.TopRight.From = boxPos + Vector2.new(boxSize.X, 0)
+                objects.Box.TopRight.To = boxPos + Vector2.new(boxSize.X - cornerSize, 0)
+                objects.Box.TopRight.Visible = true
+            end
+            if objects.Box.Right then
+                objects.Box.Right.From = boxPos + Vector2.new(boxSize.X, 0)
+                objects.Box.Right.To = boxPos + Vector2.new(boxSize.X, cornerSize)
+                objects.Box.Right.Visible = true
+            end
+            if objects.Box.BottomLeft then
+                objects.Box.BottomLeft.From = boxPos + Vector2.new(0, boxSize.Y)
+                objects.Box.BottomLeft.To = boxPos + Vector2.new(cornerSize, boxSize.Y)
+                objects.Box.BottomLeft.Visible = true
+            end
+            if objects.Box.Bottom then
+                objects.Box.Bottom.From = boxPos + Vector2.new(0, boxSize.Y)
+                objects.Box.Bottom.To = boxPos + Vector2.new(0, boxSize.Y - cornerSize)
+                objects.Box.Bottom.Visible = true
+            end
+            if objects.Box.BottomRight then
+                objects.Box.BottomRight.From = boxPos + Vector2.new(boxSize.X, boxSize.Y)
+                objects.Box.BottomRight.To = boxPos + Vector2.new(boxSize.X - cornerSize, boxSize.Y)
+                objects.Box.BottomRight.Visible = true
+            end
+            if objects.Box.Top then
+                objects.Box.Top.From = boxPos + Vector2.new(boxSize.X, boxSize.Y)
+                objects.Box.Top.To = boxPos + Vector2.new(boxSize.X, boxSize.Y - cornerSize)
+                objects.Box.Top.Visible = true
+            end
+        end
+        
+        for _, line in pairs(objects.Box) do
+            if line and line.Visible then
+                line.Color = color
+                line.Thickness = Config.BoxThickness
+            end
+        end
+    else
+        for _, line in pairs(objects.Box) do line.Visible = false end
+    end
+    
+    -- Name ESP
+    if Config.NameESP and objects.Name then
+        objects.Name.Text = player.Name .. " [" .. math.floor(distance) .. "]"
+        objects.Name.Position = Vector2.new(pos.X, top.Y - 20)
+        objects.Name.Color = color
+        objects.Name.Size = Config.TextSize
+        objects.Name.Visible = true
+    else
+        if objects.Name then objects.Name.Visible = false end
+    end
+    
+    -- Tracer ESP
+    if Config.TracerESP and objects.Tracer then
+        objects.Tracer.From = GetTracerOrigin()
+        objects.Tracer.To = Vector2.new(pos.X, pos.Y)
+        objects.Tracer.Color = color
+        objects.Tracer.Visible = true
+    else
+        if objects.Tracer then objects.Tracer.Visible = false end
+    end
+    
+    -- Health ESP
+    if Config.HealthESP and objects.HealthBar then
+        local health = humanoid.Health
+        local maxHealth = humanoid.MaxHealth
+        local healthPercent = math.max(0, math.min(1, health / maxHealth))
+        
+        local barHeight = screenHeight * 0.8
+        local barWidth = 4
+        local barPos = Vector2.new(boxPos.X - barWidth - 2, boxPos.Y + (screenHeight - barHeight)/2)
+        
+        if objects.HealthBar.Outline then
+            objects.HealthBar.Outline.Size = Vector2.new(barWidth, barHeight)
+            objects.HealthBar.Outline.Position = barPos
+            objects.HealthBar.Outline.Visible = true
+        end
+        
+        if objects.HealthBar.Fill then
+            objects.HealthBar.Fill.Size = Vector2.new(barWidth - 2, barHeight * healthPercent)
+            objects.HealthBar.Fill.Position = Vector2.new(barPos.X + 1, barPos.Y + barHeight * (1 - healthPercent))
+            objects.HealthBar.Fill.Color = Color3.fromRGB(255 * (1 - healthPercent), 255 * healthPercent, 0)
+            objects.HealthBar.Fill.Visible = true
+        end
+        
+        if (Config.HealthStyle == "Text" or Config.HealthStyle == "Both") and objects.HealthBar.Text then
+            objects.HealthBar.Text.Text = math.floor(health) .. "/" .. math.floor(maxHealth)
+            objects.HealthBar.Text.Position = Vector2.new(boxPos.X + boxWidth/2, boxPos.Y - 5)
+            objects.HealthBar.Text.Color = color
+            objects.HealthBar.Text.Size = Config.TextSize - 2
+            objects.HealthBar.Text.Visible = true
+        elseif objects.HealthBar.Text then
+            objects.HealthBar.Text.Visible = false
+        end
+    else
+        if objects.HealthBar then
+            if objects.HealthBar.Outline then objects.HealthBar.Outline.Visible = false end
+            if objects.HealthBar.Fill then objects.HealthBar.Fill.Visible = false end
+            if objects.HealthBar.Text then objects.HealthBar.Text.Visible = false end
+        end
+    end
+    
+    -- Skeleton ESP
+    if Config.SkeletonESP and character then
+        local skeletonColor = Config.RainbowEnabled and Colors.Rainbow or Config.SkeletonColor
+        DrawSkeleton(character, objects.Skeleton, skeletonColor, Config.SkeletonThickness)
+    elseif objects.Skeleton then
+        for _, line in pairs(objects.Skeleton) do
+            if line then line.Visible = false end
+        end
+    end
+    
+    -- Chams
+    if Config.ChamsESP and ChamsCache[player] then
+        local highlight = ChamsCache[player]
+        highlight.FillColor = Config.RainbowEnabled and Colors.Rainbow or Config.ChamsColor
+        highlight.FillTransparency = Config.ChamsTransparency
+        highlight.Parent = character
+        highlight.Enabled = true
+    elseif ChamsCache[player] then
+        ChamsCache[player].Enabled = false
+    end
+end
+
+-- Triggerbot System
+local triggerbotActive = false
+local mouse = LocalPlayer:GetMouse()
+
+-- Map key strings to input types
+local function GetKeyEnum(keyString)
+    local keyMap = {
+        MouseButton1 = Enum.UserInputType.MouseButton1,
+        MouseButton2 = Enum.UserInputType.MouseButton2,
+        MouseButton3 = Enum.UserInputType.MouseButton3,
+        MouseButton4 = Enum.UserInputType.MouseButton4,
+        MouseButton5 = Enum.UserInputType.MouseButton5,
+        LeftControl = Enum.KeyCode.LeftControl,
+        LeftShift = Enum.KeyCode.LeftShift
+    }
+    return keyMap[keyString]
+end
+
+-- Input handlers for triggerbot
+UserInputService.InputBegan:Connect(function(input)
+    if not Config.TriggerbotEnabled then return end
+    
+    local triggerKey = GetKeyEnum(Config.TriggerbotKey)
+    if not triggerKey then return end
+    
+    if input.UserInputType == triggerKey or input.KeyCode == triggerKey then
+        triggerbotActive = true
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if not Config.TriggerbotEnabled then return end
+    
+    local triggerKey = GetKeyEnum(Config.TriggerbotKey)
+    if not triggerKey then return end
+    
+    if input.UserInputType == triggerKey or input.KeyCode == triggerKey then
+        triggerbotActive = false
+    end
+end)
+
+-- Triggerbot loop
+task.spawn(function()
+    while task.wait() do
+        if Config.TriggerbotEnabled and triggerbotActive then
+            local target = mouse.Target
+            if target and target.Parent then
+                local humanoid = target.Parent:FindFirstChild("Humanoid")
+                if humanoid and target.Parent ~= LocalPlayer.Character then
+                    local player = Players:GetPlayerFromCharacter(target.Parent)
+                    if player then
+                        local shouldShoot = true
+                        
+                        -- Team check
+                        if Config.TeamCheck then
+                            shouldShoot = player.Team ~= LocalPlayer.Team
+                        end
+                        
+                        if shouldShoot then
+                            mouse1press()
+                            if Config.TriggerbotDelay > 0 then
+                                task.wait(Config.TriggerbotDelay)
+                            end
+                            mouse1release()
+                        end
+                    end
+                end
+            end
+        end
+    end
+end)
+
 -- Rainbow effect
 task.spawn(function()
     while task.wait(0.05) do
@@ -1384,19 +1855,15 @@ end
 -- Menu toggle
 UserInputService.InputBegan:Connect(function(input)
     if input.KeyCode == Enum.KeyCode.Insert then
-        Config.MenuOpen = not Config.MenuOpen
-        Window:SetVisibility(Config.MenuOpen)
+        -- Rayfield has its own minimize system
     end
 end)
 
--- Initial setup
-Window:SelectTab(1)
-Window:SetVisibility(true)
-
-Fluent:Notify({
-    Title = "WA Universal ESP",
-    Content = "Loaded with Chams, Skeletons & Aimbot! Press Insert for menu.",
+-- Notify
+Rayfield:Notify({
+    Title = "WA Universal",
+    Content = "Loaded with ESP, Chams, Skeletons, Aimbot & Triggerbot!",
     Duration = 5
 })
 
-print("WA Universal ESP with Chams, Skeletons & Aimbot Loaded")
+print("WA Universal ESP with Chams, Skeletons, Aimbot & Triggerbot Loaded")
