@@ -62,7 +62,7 @@ local Settings = {
 -- ============================================
 local AimbotSettings = {
     Enabled = true,                    -- Master toggle
-    Key = Enum.UserInputType.MouseButton5, -- MouseButton2 = right click
+    Key = Enum.UserInputType.MouseButton5, -- MouseButton5 = right click
     TeamCheck = false,                  -- Don't aim at teammates
     LockPart = "Head",                   -- "Head", "Torso", "HumanoidRootPart"
     FOV = 180,                          -- Detection range (pixels)
@@ -622,7 +622,7 @@ end
 print("=== WA Universal ESP with Aimbot Loaded ===")
 print("📌 Aimbot Settings (adjust at top of script):")
 print("   Enabled:", AimbotSettings.Enabled)
-print("   Key: Right Click (MouseButton2)")
+print("   Key: Right Click (MouseButton5)")
 print("   FOV:", AimbotSettings.FOV)
 print("   Smoothness:", AimbotSettings.Smoothness)
 print("   Prediction:", AimbotSettings.Prediction)
