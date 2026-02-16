@@ -1,4 +1,4 @@
--- WA Universal ESP with Chams, Skeletons & Aimbot (FIXED)
+-- WA Universal ESP with Chams, Skeletons & Aimbot (FULLY FIXED with Mouse 4/5)
 -- Services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -14,7 +14,7 @@ local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.
 
 -- Load Aimbot
 local Aimbot = loadstring(game:HttpGet("https://raw.githubusercontent.com/Exunys/Aimbot-V3/main/src/Aimbot.lua"))()
-Aimbot.Load() -- Initialize the aimbot
+Aimbot.Load()
 
 -- Configure Aimbot settings
 getgenv().ExunysDeveloperAimbot = {
@@ -24,7 +24,7 @@ getgenv().ExunysDeveloperAimbot = {
         RainbowSpeed = 1
     },
     Settings = {
-        Enabled = false, -- Start disabled
+        Enabled = false,
         TeamCheck = false,
         AliveCheck = true,
         WallCheck = false,
@@ -95,9 +95,10 @@ local Config = {
     SkeletonColor = Color3.fromRGB(255, 255, 255),
     SkeletonThickness = 3,
     
-    -- Chams Settings
+    -- Chams Settings (with VisCheck)
     ChamsColor = Color3.fromRGB(255, 0, 0),
-    ChamsTransparency = 0.5,
+    ChamsVisibleTransparency = 0.3,
+    ChamsHiddenTransparency = 0.7,
 }
 
 -- Colors table for dynamic updates
@@ -108,10 +109,32 @@ local Colors = {
     Rainbow = nil
 }
 
+-- Helper function to check if a player is visible (line of sight)
+local function IsPlayerVisible(player)
+    local character = player.Character
+    if not character then return false end
+    
+    local head = character:FindFirstChild("Head") or character:FindFirstChild("HumanoidRootPart")
+    if not head then return false end
+    
+    local origin = Camera.CFrame.Position
+    local target = head.Position
+    local direction = (target - origin).Unit
+    local ray = Ray.new(origin, direction * 1000)
+    local ignoreList = {LocalPlayer.Character, character}
+    
+    local hit, position = workspace:FindPartOnRayWithIgnoreList(ray, ignoreList)
+    
+    if not hit then return true end
+    if hit and hit:IsDescendantOf(character) then return true end
+    
+    return false
+end
+
 -- UI Setup with Fluent
 local Window = Fluent:CreateWindow({
     Title = "WA Universal ESP",
-    SubTitle = "with Chams, Skeletons & Aimbot",
+    SubTitle = "with VisCheck Chams & Aimbot",
     TabWidth = 160,
     Size = UDim2.fromOffset(580, 460),
     Acrylic = false,
@@ -147,7 +170,6 @@ do
     })
     TeamCheckToggle:OnChanged(function()
         Config.TeamCheck = TeamCheckToggle.Value
-        -- Update aimbot team check
         getgenv().ExunysDeveloperAimbot.Settings.TeamCheck = Config.TeamCheck
     end)
     
@@ -297,13 +319,13 @@ do
     end)
 end
 
--- Chams Tab
+-- Chams Tab (with VisCheck settings)
 do
     local ChamsSection = Tabs.Chams:AddSection("Character Highlighting")
     
     local ChamsToggle = ChamsSection:AddToggle("ChamsESP", {
         Title = "Enable Chams",
-        Description = "Highlight entire character",
+        Description = "Highlight entire character with visibility detection",
         Default = Config.ChamsESP
     })
     ChamsToggle:OnChanged(function()
@@ -319,20 +341,39 @@ do
         Config.ChamsColor = Value
     end)
     
-    local ChamsTransparency = ChamsSection:AddSlider("ChamsTransparency", {
-        Title = "Chams Transparency",
-        Description = "0 = Opaque, 1 = Invisible",
-        Default = Config.ChamsTransparency,
+    local VisCheckSection = Tabs.Chams:AddSection("Visibility Settings")
+    
+    local ChamsVisibleTransparency = VisCheckSection:AddSlider("ChamsVisibleTransparency", {
+        Title = "Visible Transparency",
+        Description = "When you can see them (0 = opaque, 1 = invisible)",
+        Default = Config.ChamsVisibleTransparency,
         Min = 0,
         Max = 1,
         Rounding = 2
     })
-    ChamsTransparency:OnChanged(function(Value)
-        Config.ChamsTransparency = Value
+    ChamsVisibleTransparency:OnChanged(function(Value)
+        Config.ChamsVisibleTransparency = Value
     end)
+    
+    local ChamsHiddenTransparency = VisCheckSection:AddSlider("ChamsHiddenTransparency", {
+        Title = "Hidden Transparency",
+        Description = "When behind walls (0 = opaque, 1 = invisible)",
+        Default = Config.ChamsHiddenTransparency,
+        Min = 0,
+        Max = 1,
+        Rounding = 2
+    })
+    ChamsHiddenTransparency:OnChanged(function(Value)
+        Config.ChamsHiddenTransparency = Value
+    end)
+    
+    local PreviewNote = VisCheckSection:AddParagraph({
+        Title = "How it works",
+        Content = "• Visible = line of sight\n• Hidden = behind walls\n\nChams get clearer when you see them!"
+    })
 end
 
--- Aimbot Tab
+-- Aimbot Tab (with Mouse 4/5 added)
 do
     local AimbotSection = Tabs.Aimbot:AddSection("Aimbot Controls")
     
@@ -345,19 +386,22 @@ do
         getgenv().ExunysDeveloperAimbot.Settings.Enabled = Config.AimbotEnabled
     end)
     
-    -- Trigger Key
+    -- Trigger Key (UPDATED with Mouse Button 4 and 5)
     local KeySection = Tabs.Aimbot:AddSection("Trigger Settings")
     
     local KeyDropdown = KeySection:AddDropdown("TriggerKey", {
         Title = "Aimbot Key",
-        Values = {"MouseButton2", "MouseButton1", "LeftControl", "LeftShift", "E", "Q", "F", "V", "C", "X", "Z"},
+        Values = {"MouseButton2", "MouseButton1", "MouseButton3", "MouseButton4", "MouseButton5", "LeftControl", "LeftShift", "E", "Q", "F", "V", "C", "X", "Z"},
         Default = "MouseButton2",
         Multi = false
     })
     KeyDropdown:OnChanged(function(Value)
         local keyMap = {
-            MouseButton2 = Enum.UserInputType.MouseButton2,
             MouseButton1 = Enum.UserInputType.MouseButton1,
+            MouseButton2 = Enum.UserInputType.MouseButton2,
+            MouseButton3 = Enum.UserInputType.MouseButton3,
+            MouseButton4 = Enum.UserInputType.MouseButton4,
+            MouseButton5 = Enum.UserInputType.MouseButton5,
             LeftControl = Enum.KeyCode.LeftControl,
             LeftShift = Enum.KeyCode.LeftShift,
             E = Enum.KeyCode.E,
@@ -547,7 +591,6 @@ do
         Title = "Unload ESP",
         Description = "Completely remove the ESP",
         Callback = function()
-            -- Clean up all drawings
             for _, objects in pairs(ESP_Cache) do
                 if objects.Box then
                     for _, line in pairs(objects.Box) do
@@ -568,12 +611,10 @@ do
                 end
             end
             
-            -- Clean up chams
             for _, highlight in pairs(ChamsCache) do
                 pcall(function() highlight:Destroy() end)
             end
             
-            -- Unload aimbot
             pcall(function() Aimbot:Exit() end)
             
             ESP_Cache = {}
@@ -706,7 +747,7 @@ local function CreateESP(player)
     local highlight = Instance.new("Highlight")
     highlight.Name = "Chams_" .. player.Name
     highlight.FillColor = Config.ChamsColor
-    highlight.FillTransparency = Config.ChamsTransparency
+    highlight.FillTransparency = Config.ChamsHiddenTransparency
     highlight.OutlineTransparency = 1
     highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
     highlight.Enabled = false
@@ -951,11 +992,13 @@ local function UpdateESP(player)
         end
     end
     
-    -- Chams
+    -- Chams with VisCheck
     if Config.ChamsESP and ChamsCache[player] then
         local highlight = ChamsCache[player]
+        local isVisible = IsPlayerVisible(player)
+        
         highlight.FillColor = Config.RainbowEnabled and Colors.Rainbow or Config.ChamsColor
-        highlight.FillTransparency = Config.ChamsTransparency
+        highlight.FillTransparency = isVisible and Config.ChamsVisibleTransparency or Config.ChamsHiddenTransparency
         highlight.Parent = character
         highlight.Enabled = true
     elseif ChamsCache[player] then
@@ -1008,8 +1051,8 @@ Window:SetVisibility(true)
 
 Fluent:Notify({
     Title = "WA Universal ESP",
-    Content = "Loaded with Chams, Skeletons & Aimbot! Press Insert for menu.",
+    Content = "Loaded with VisCheck Chams & Aimbot! Press Insert for menu.",
     Duration = 5
 })
 
-print("WA Universal ESP with Chams, Skeletons & Aimbot Loaded")
+print("WA Universal ESP with VisCheck Chams & Aimbot Loaded")
