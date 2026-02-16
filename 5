@@ -1,4 +1,4 @@
--- WA Universal ESP v1.0 (PURE ESP - NO AIMBOT)
+-- WA Universal ESP v1.0 with Aimbot
 -- Services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -6,23 +6,16 @@ local UserInputService = game:GetService("UserInputService")
 local Camera = workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
 
--- Load Fluent
-local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
-
 -- Drawing Cache
 local ESP_Cache = {}
 
--- Configuration
-local Config = {
+-- ESP Configuration
+local ESPConfig = {
     Enabled = false,
     BoxESP = false,
     NameESP = false,
-    HealthESP = false,
-    TracerESP = false,
     TeamCheck = false,
     BoxStyle = "Corner",
-    TracerOrigin = "Bottom",
-    HealthStyle = "Bar",
     BoxThickness = 1,
     TextSize = 14,
     MaxDistance = 1000,
@@ -32,185 +25,183 @@ local Config = {
 
 -- Colors
 local Colors = {
-    Enemy = Config.EnemyColor,
-    Ally = Config.AllyColor,
+    Enemy = ESPConfig.EnemyColor,
+    Ally = ESPConfig.AllyColor,
 }
 
--- Create Window
-local Window = Fluent:CreateWindow({
-    Title = "WA ESP v1.0",
-    SubTitle = "Pure ESP",
-    TabWidth = 160,
-    Size = UDim2.fromOffset(580, 460),
-    Theme = "Dark",
-    MinimizeKey = Enum.KeyCode.LeftControl
-})
+-- ========== AIMBOT SCRIPT (from GitHub) ==========
+-- Environment
+getgenv().Aimbot = {}
+local Environment = getgenv().Aimbot
 
--- Create Tabs
-local Tabs = {
-    Main = Window:AddTab({ Title = "Main", Icon = "home" }),
-    ESP = Window:AddTab({ Title = "ESP", Icon = "eye" }),
+-- Aimbot Variables
+local RequiredDistance, Typing, Running, Animation, ServiceConnections = 2000, false, false, nil, {}
+
+-- Aimbot Settings
+Environment.Settings = {
+    Enabled = false,
+    TeamCheck = false,
+    AliveCheck = true,
+    WallCheck = false,
+    Sensitivity = 0,
+    ThirdPerson = false,
+    ThirdPersonSensitivity = 3,
+    TriggerKey = "MouseButton2",
+    Toggle = false,
+    LockPart = "Head"
 }
 
--- Main Tab
-do
-    local Section = Tabs.Main:AddSection("Main Controls")
-    
-    local Toggle = Section:AddToggle("Enabled", {
-        Title = "Enable ESP",
-        Default = Config.Enabled
-    })
-    Toggle:OnChanged(function(Value)
-        Config.Enabled = Value
-    end)
-    
-    local Toggle2 = Section:AddToggle("TeamCheck", {
-        Title = "Team Check",
-        Default = Config.TeamCheck
-    })
-    Toggle2:OnChanged(function(Value)
-        Config.TeamCheck = Value
-    end)
-    
-    local Slider = Section:AddSlider("MaxDistance", {
-        Title = "Max Distance",
-        Default = Config.MaxDistance,
-        Min = 100,
-        Max = 5000,
-        Rounding = 0
-    })
-    Slider:OnChanged(function(Value)
-        Config.MaxDistance = Value
-    end)
+Environment.FOVSettings = {
+    Enabled = true,
+    Visible = true,
+    Amount = 90,
+    Color = Color3.fromRGB(255, 255, 255),
+    LockedColor = Color3.fromRGB(255, 70, 70),
+    Transparency = 0.5,
+    Sides = 60,
+    Thickness = 1,
+    Filled = false
+}
+
+Environment.FOVCircle = Drawing.new("Circle")
+
+-- Aimbot Functions
+local function CancelLock()
+    Environment.Locked = nil
+    if Animation then Animation:Cancel() end
+    Environment.FOVCircle.Color = Environment.FOVSettings.Color
 end
 
--- ESP Tab
-do
-    local BoxSection = Tabs.ESP:AddSection("Box ESP")
-    
-    local BoxToggle = BoxSection:AddToggle("BoxESP", {
-        Title = "Box ESP",
-        Default = Config.BoxESP
-    })
-    BoxToggle:OnChanged(function(Value)
-        Config.BoxESP = Value
-    end)
-    
-    local BoxStyle = BoxSection:AddDropdown("BoxStyle", {
-        Title = "Box Style",
-        Values = {"Corner", "Full"},
-        Default = Config.BoxStyle
-    })
-    BoxStyle:OnChanged(function(Value)
-        Config.BoxStyle = Value
-    end)
-    
-    local BoxThick = BoxSection:AddSlider("BoxThickness", {
-        Title = "Box Thickness",
-        Default = Config.BoxThickness,
-        Min = 1,
-        Max = 5,
-        Rounding = 1
-    })
-    BoxThick:OnChanged(function(Value)
-        Config.BoxThickness = Value
-    end)
-    
-    local NameSection = Tabs.ESP:AddSection("Name ESP")
-    
-    local NameToggle = NameSection:AddToggle("NameESP", {
-        Title = "Name ESP",
-        Default = Config.NameESP
-    })
-    NameToggle:OnChanged(function(Value)
-        Config.NameESP = Value
-    end)
-    
-    local TextSlider = NameSection:AddSlider("TextSize", {
-        Title = "Text Size",
-        Default = Config.TextSize,
-        Min = 10,
-        Max = 24,
-        Rounding = 0
-    })
-    TextSlider:OnChanged(function(Value)
-        Config.TextSize = Value
-    end)
-    
-    local HealthSection = Tabs.ESP:AddSection("Health ESP")
-    
-    local HealthToggle = HealthSection:AddToggle("HealthESP", {
-        Title = "Health ESP",
-        Default = Config.HealthESP
-    })
-    HealthToggle:OnChanged(function(Value)
-        Config.HealthESP = Value
-    end)
-    
-    local HealthStyle = HealthSection:AddDropdown("HealthStyle", {
-        Title = "Health Style",
-        Values = {"Bar", "Text", "Both"},
-        Default = Config.HealthStyle
-    })
-    HealthStyle:OnChanged(function(Value)
-        Config.HealthStyle = Value
-    end)
-    
-    local TracerSection = Tabs.ESP:AddSection("Tracers")
-    
-    local TracerToggle = TracerSection:AddToggle("TracerESP", {
-        Title = "Tracer ESP",
-        Default = Config.TracerESP
-    })
-    TracerToggle:OnChanged(function(Value)
-        Config.TracerESP = Value
-    end)
-    
-    local TracerOrigin = TracerSection:AddDropdown("TracerOrigin", {
-        Title = "Tracer Origin",
-        Values = {"Bottom", "Top", "Mouse", "Center"},
-        Default = Config.TracerOrigin
-    })
-    TracerOrigin:OnChanged(function(Value)
-        Config.TracerOrigin = Value
-    end)
-    
-    local ColorSection = Tabs.ESP:AddSection("Colors")
-    
-    local EnemyColor = ColorSection:AddColorpicker("EnemyColor", {
-        Title = "Enemy Color",
-        Default = Config.EnemyColor
-    })
-    EnemyColor:OnChanged(function(Value)
-        Config.EnemyColor = Value
-        Colors.Enemy = Value
-    end)
-    
-    local AllyColor = ColorSection:AddColorpicker("AllyColor", {
-        Title = "Ally Color",
-        Default = Config.AllyColor
-    })
-    AllyColor:OnChanged(function(Value)
-        Config.AllyColor = Value
-        Colors.Ally = Value
-    end)
+local function GetClosestPlayer()
+    if not Environment.Locked then
+        RequiredDistance = (Environment.FOVSettings.Enabled and Environment.FOVSettings.Amount or 2000)
+
+        for _, v in next, Players:GetPlayers() do
+            if v ~= LocalPlayer then
+                if v.Character and v.Character:FindFirstChild(Environment.Settings.LockPart) and v.Character:FindFirstChildOfClass("Humanoid") then
+                    if Environment.Settings.TeamCheck and v.Team == LocalPlayer.Team then continue end
+                    if Environment.Settings.AliveCheck and v.Character:FindFirstChildOfClass("Humanoid").Health <= 0 then continue end
+                    if Environment.Settings.WallCheck and #(Camera:GetPartsObscuringTarget({v.Character[Environment.Settings.LockPart].Position}, v.Character:GetDescendants())) > 0 then continue end
+
+                    local Vector, OnScreen = Camera:WorldToViewportPoint(v.Character[Environment.Settings.LockPart].Position)
+                    local Distance = (Vector2.new(UserInputService:GetMouseLocation().X, UserInputService:GetMouseLocation().Y) - Vector2.new(Vector.X, Vector.Y)).Magnitude
+
+                    if Distance < RequiredDistance and OnScreen then
+                        RequiredDistance = Distance
+                        Environment.Locked = v
+                    end
+                end
+            end
+        end
+    elseif (Vector2.new(UserInputService:GetMouseLocation().X, UserInputService:GetMouseLocation().Y) - Vector2.new(Camera:WorldToViewportPoint(Environment.Locked.Character[Environment.Settings.LockPart].Position))).Magnitude > RequiredDistance then
+        CancelLock()
+    end
 end
+
+-- Typing Check
+ServiceConnections.TypingStartedConnection = UserInputService.TextBoxFocused:Connect(function()
+    Typing = true
+end)
+
+ServiceConnections.TypingEndedConnection = UserInputService.TextBoxFocusReleased:Connect(function()
+    Typing = false
+end)
+
+-- Main Aimbot Loop
+ServiceConnections.RenderSteppedConnection = RunService.RenderStepped:Connect(function()
+    -- FOV Circle
+    if Environment.FOVSettings.Enabled and Environment.Settings.Enabled then
+        Environment.FOVCircle.Radius = Environment.FOVSettings.Amount
+        Environment.FOVCircle.Thickness = Environment.FOVSettings.Thickness
+        Environment.FOVCircle.Filled = Environment.FOVSettings.Filled
+        Environment.FOVCircle.NumSides = Environment.FOVSettings.Sides
+        Environment.FOVCircle.Color = Environment.FOVSettings.Color
+        Environment.FOVCircle.Transparency = Environment.FOVSettings.Transparency
+        Environment.FOVCircle.Visible = Environment.FOVSettings.Visible
+        Environment.FOVCircle.Position = Vector2.new(UserInputService:GetMouseLocation().X, UserInputService:GetMouseLocation().Y)
+    else
+        Environment.FOVCircle.Visible = false
+    end
+
+    -- Aimbot Logic
+    if Running and Environment.Settings.Enabled then
+        GetClosestPlayer()
+
+        if Environment.Locked then
+            if Environment.Settings.ThirdPerson then
+                Environment.Settings.ThirdPersonSensitivity = math.clamp(Environment.Settings.ThirdPersonSensitivity, 0.1, 5)
+                local Vector = Camera:WorldToViewportPoint(Environment.Locked.Character[Environment.Settings.LockPart].Position)
+                mousemoverel((Vector.X - UserInputService:GetMouseLocation().X) * Environment.Settings.ThirdPersonSensitivity, (Vector.Y - UserInputService:GetMouseLocation().Y) * Environment.Settings.ThirdPersonSensitivity)
+            else
+                if Environment.Settings.Sensitivity > 0 then
+                    Animation = game:GetService("TweenService"):Create(Camera, TweenInfo.new(Environment.Settings.Sensitivity, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {CFrame = CFrame.new(Camera.CFrame.Position, Environment.Locked.Character[Environment.Settings.LockPart].Position)})
+                    Animation:Play()
+                else
+                    Camera.CFrame = CFrame.new(Camera.CFrame.Position, Environment.Locked.Character[Environment.Settings.LockPart].Position)
+                end
+            end
+            Environment.FOVCircle.Color = Environment.FOVSettings.LockedColor
+        end
+    end
+end)
+
+-- Input Handling
+ServiceConnections.InputBeganConnection = UserInputService.InputBegan:Connect(function(Input)
+    if not Typing then
+        -- Check KeyCode
+        pcall(function()
+            if Input.KeyCode == Enum.KeyCode[Environment.Settings.TriggerKey] then
+                if Environment.Settings.Toggle then
+                    Running = not Running
+                    if not Running then CancelLock() end
+                else
+                    Running = true
+                end
+            end
+        end)
+        -- Check UserInputType
+        pcall(function()
+            if Input.UserInputType == Enum.UserInputType[Environment.Settings.TriggerKey] then
+                if Environment.Settings.Toggle then
+                    Running = not Running
+                    if not Running then CancelLock() end
+                else
+                    Running = true
+                end
+            end
+        end)
+    end
+end)
+
+ServiceConnections.InputEndedConnection = UserInputService.InputEnded:Connect(function(Input)
+    if not Typing and not Environment.Settings.Toggle then
+        pcall(function()
+            if Input.KeyCode == Enum.KeyCode[Environment.Settings.TriggerKey] then
+                Running = false; CancelLock()
+            end
+        end)
+        pcall(function()
+            if Input.UserInputType == Enum.UserInputType[Environment.Settings.TriggerKey] then
+                Running = false; CancelLock()
+            end
+        end)
+    end
+end)
+
+-- Aimbot Functions Table
+Environment.Functions = {}
+function Environment.Functions:Exit()
+    for _, v in next, ServiceConnections do
+        v:Disconnect()
+    end
+    if Environment.FOVCircle.Remove then Environment.FOVCircle:Remove() end
+    getgenv().Aimbot = nil
+end
+-- ========== END AIMBOT SCRIPT ==========
 
 -- ESP Functions
 local function GetPlayerColor(player)
-    return (Config.TeamCheck and player.Team == LocalPlayer.Team) and Colors.Ally or Colors.Enemy
-end
-
-local function GetTracerOrigin()
-    if Config.TracerOrigin == "Bottom" then
-        return Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y)
-    elseif Config.TracerOrigin == "Top" then
-        return Vector2.new(Camera.ViewportSize.X/2, 0)
-    elseif Config.TracerOrigin == "Mouse" then
-        return UserInputService:GetMouseLocation()
-    else
-        return Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
-    end
+    return (ESPConfig.TeamCheck and player.Team == LocalPlayer.Team) and Colors.Ally or Colors.Enemy
 end
 
 local function CreateESP(player)
@@ -228,44 +219,20 @@ local function CreateESP(player)
             BottomRight = Drawing.new("Line")
         },
         Name = Drawing.new("Text"),
-        Tracer = Drawing.new("Line"),
-        HealthBar = {
-            Outline = Drawing.new("Square"),
-            Fill = Drawing.new("Square"),
-            Text = Drawing.new("Text")
-        },
     }
     
     for _, line in pairs(objects.Box) do
         line.Visible = false
         line.Color = Colors.Enemy
-        line.Thickness = Config.BoxThickness
+        line.Thickness = ESPConfig.BoxThickness
     end
     
     objects.Name.Visible = false
     objects.Name.Center = true
     objects.Name.Outline = true
-    objects.Name.Size = Config.TextSize
+    objects.Name.Size = ESPConfig.TextSize
     objects.Name.Color = Colors.Enemy
     objects.Name.Font = 2
-    
-    objects.Tracer.Visible = false
-    objects.Tracer.Color = Colors.Enemy
-    objects.Tracer.Thickness = 1
-    
-    objects.HealthBar.Outline.Visible = false
-    objects.HealthBar.Outline.Filled = false
-    objects.HealthBar.Outline.Color = Color3.new(0, 0, 0)
-    objects.HealthBar.Outline.Thickness = 1
-    
-    objects.HealthBar.Fill.Visible = false
-    objects.HealthBar.Fill.Filled = true
-    objects.HealthBar.Fill.Color = Color3.fromRGB(0, 255, 0)
-    
-    objects.HealthBar.Text.Visible = false
-    objects.HealthBar.Text.Center = true
-    objects.HealthBar.Text.Size = Config.TextSize
-    objects.HealthBar.Text.Font = 2
     
     ESP_Cache[player] = objects
 end
@@ -286,7 +253,7 @@ local function RemoveESP(player)
 end
 
 local function UpdateESP(player)
-    if not Config.Enabled then return end
+    if not ESPConfig.Enabled then return end
     
     local objects = ESP_Cache[player]
     if not objects then
@@ -299,10 +266,6 @@ local function UpdateESP(player)
     if not character then
         for _, line in pairs(objects.Box) do line.Visible = false end
         objects.Name.Visible = false
-        objects.Tracer.Visible = false
-        objects.HealthBar.Outline.Visible = false
-        objects.HealthBar.Fill.Visible = false
-        objects.HealthBar.Text.Visible = false
         return
     end
     
@@ -312,34 +275,22 @@ local function UpdateESP(player)
     if not rootPart or not humanoid or humanoid.Health <= 0 then
         for _, line in pairs(objects.Box) do line.Visible = false end
         objects.Name.Visible = false
-        objects.Tracer.Visible = false
-        objects.HealthBar.Outline.Visible = false
-        objects.HealthBar.Fill.Visible = false
-        objects.HealthBar.Text.Visible = false
         return
     end
     
     local pos, onScreen = Camera:WorldToViewportPoint(rootPart.Position)
     local distance = (rootPart.Position - Camera.CFrame.Position).Magnitude
     
-    if not onScreen or distance > Config.MaxDistance then
+    if not onScreen or distance > ESPConfig.MaxDistance then
         for _, line in pairs(objects.Box) do line.Visible = false end
         objects.Name.Visible = false
-        objects.Tracer.Visible = false
-        objects.HealthBar.Outline.Visible = false
-        objects.HealthBar.Fill.Visible = false
-        objects.HealthBar.Text.Visible = false
         return
     end
     
-    local isTeam = Config.TeamCheck and player.Team == LocalPlayer.Team
+    local isTeam = ESPConfig.TeamCheck and player.Team == LocalPlayer.Team
     if isTeam then
         for _, line in pairs(objects.Box) do line.Visible = false end
         objects.Name.Visible = false
-        objects.Tracer.Visible = false
-        objects.HealthBar.Outline.Visible = false
-        objects.HealthBar.Fill.Visible = false
-        objects.HealthBar.Text.Visible = false
         return
     end
     
@@ -357,10 +308,10 @@ local function UpdateESP(player)
     local boxSize = Vector2.new(boxWidth, screenHeight)
     
     -- Box ESP
-    if Config.BoxESP then
+    if ESPConfig.BoxESP then
         for _, line in pairs(objects.Box) do line.Visible = false end
         
-        if Config.BoxStyle == "Full" then
+        if ESPConfig.BoxStyle == "Full" then
             objects.Box.Left.From = boxPos
             objects.Box.Left.To = boxPos + Vector2.new(0, boxSize.Y)
             objects.Box.Left.Visible = true
@@ -415,7 +366,7 @@ local function UpdateESP(player)
         for _, line in pairs(objects.Box) do
             if line.Visible then
                 line.Color = color
-                line.Thickness = Config.BoxThickness
+                line.Thickness = ESPConfig.BoxThickness
             end
         end
     else
@@ -423,64 +374,20 @@ local function UpdateESP(player)
     end
     
     -- Name ESP
-    if Config.NameESP then
+    if ESPConfig.NameESP then
         objects.Name.Text = player.Name
         objects.Name.Position = Vector2.new(pos.X, top.Y - 20)
         objects.Name.Color = color
-        objects.Name.Size = Config.TextSize
+        objects.Name.Size = ESPConfig.TextSize
         objects.Name.Visible = true
     else
         objects.Name.Visible = false
     end
-    
-    -- Tracer ESP
-    if Config.TracerESP then
-        objects.Tracer.From = GetTracerOrigin()
-        objects.Tracer.To = Vector2.new(pos.X, pos.Y)
-        objects.Tracer.Color = color
-        objects.Tracer.Visible = true
-    else
-        objects.Tracer.Visible = false
-    end
-    
-    -- Health ESP
-    if Config.HealthESP then
-        local health = humanoid.Health
-        local maxHealth = humanoid.MaxHealth
-        local healthPercent = math.max(0, math.min(1, health / maxHealth))
-        
-        local barHeight = screenHeight * 0.8
-        local barWidth = 4
-        local barPos = Vector2.new(boxPos.X - barWidth - 2, boxPos.Y + (screenHeight - barHeight)/2)
-        
-        objects.HealthBar.Outline.Size = Vector2.new(barWidth, barHeight)
-        objects.HealthBar.Outline.Position = barPos
-        objects.HealthBar.Outline.Visible = true
-        
-        objects.HealthBar.Fill.Size = Vector2.new(barWidth - 2, barHeight * healthPercent)
-        objects.HealthBar.Fill.Position = Vector2.new(barPos.X + 1, barPos.Y + barHeight * (1 - healthPercent))
-        objects.HealthBar.Fill.Color = Color3.fromRGB(255 * (1 - healthPercent), 255 * healthPercent, 0)
-        objects.HealthBar.Fill.Visible = true
-        
-        if Config.HealthStyle == "Text" or Config.HealthStyle == "Both" then
-            objects.HealthBar.Text.Text = math.floor(health) .. "/" .. math.floor(maxHealth)
-            objects.HealthBar.Text.Position = Vector2.new(boxPos.X + boxWidth/2, boxPos.Y - 5)
-            objects.HealthBar.Text.Color = color
-            objects.HealthBar.Text.Size = Config.TextSize - 2
-            objects.HealthBar.Text.Visible = true
-        else
-            objects.HealthBar.Text.Visible = false
-        end
-    else
-        objects.HealthBar.Outline.Visible = false
-        objects.HealthBar.Fill.Visible = false
-        objects.HealthBar.Text.Visible = false
-    end
 end
 
--- Update loop
+-- ESP Update loop
 RunService.RenderStepped:Connect(function()
-    if Config.Enabled then
+    if ESPConfig.Enabled then
         for _, player in pairs(Players:GetPlayers()) do
             if player ~= LocalPlayer then
                 UpdateESP(player)
@@ -493,25 +400,14 @@ end)
 Players.PlayerAdded:Connect(CreateESP)
 Players.PlayerRemoving:Connect(RemoveESP)
 
--- Initialize for existing players
+-- Initialize ESP
 for _, player in pairs(Players:GetPlayers()) do
     if player ~= LocalPlayer then
         CreateESP(player)
     end
 end
 
--- Menu toggle
-UserInputService.InputBegan:Connect(function(input)
-    if input.KeyCode == Enum.KeyCode.Insert then
-        Window:SetVisibility(not Window.Visible)
-    end
-end)
-
--- Select first tab
-Window:SelectTab(1)
-
-Fluent:Notify({
-    Title = "WA ESP v1.0",
-    Content = "Pure ESP loaded! Press Insert for menu.",
-    Duration = 5
-})
+-- Console output
+print("WA ESP v1.0 with Aimbot loaded")
+print("Aimbot key: MouseButton2 (right click)")
+print("ESP toggle: Set ESPConfig.Enabled = true")
