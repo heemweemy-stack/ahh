@@ -62,7 +62,7 @@ local Settings = {
 -- ============================================
 local AimbotSettings = {
     Enabled = true,                    -- Master toggle
-    Key = Enum.UserInputType.MouseButton2, -- MouseButton2 = right click
+    Key = Enum.UserInputType.MouseButton5, -- MouseButton2 = right click
     TeamCheck = false,                  -- Don't aim at teammates
     LockPart = "Head",                   -- "Head", "Torso", "HumanoidRootPart"
     FOV = 180,                          -- Detection range (pixels)
