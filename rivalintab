@@ -62,7 +62,7 @@ local Settings = {
 -- ============================================
 local AimbotSettings = {
     Enabled = true,                    -- Master toggle
-    Key = Enum.UserInputType.MouseButton2, -- MouseButton2 = right click
+    Key = Enum.UserInputType.MouseButton5, -- MouseButton5 = forward thumb button
     TeamCheck = false,                  -- Don't aim at teammates
     LockPart = "Head",                   -- "Head", "Torso", "HumanoidRootPart"
     FOV = 180,                          -- Detection range (pixels)
@@ -148,7 +148,6 @@ local function MoveMouseToTarget(targetPos)
     -- Apply prediction if enabled
     if AimbotSettings.Prediction > 0 then
         -- Simple prediction based on target velocity
-        -- You can make this more sophisticated if needed
         dx = dx * (1 + AimbotSettings.Prediction)
         dy = dy * (1 + AimbotSettings.Prediction)
     end
@@ -165,7 +164,7 @@ local function MoveMouseToTarget(targetPos)
     end
 end
 
--- Input handling
+-- Input handling for Mouse Button 5
 UserInputService.InputBegan:Connect(function(input)
     if input.UserInputType == AimbotSettings.Key and AimbotSettings.Enabled then
         Aimbot.Active = true
@@ -622,7 +621,7 @@ end
 print("=== WA Universal ESP with Aimbot Loaded ===")
 print("📌 Aimbot Settings (adjust at top of script):")
 print("   Enabled:", AimbotSettings.Enabled)
-print("   Key: Right Click (MouseButton2)")
+print("   Key: Mouse Button 5 (forward thumb button)")
 print("   FOV:", AimbotSettings.FOV)
 print("   Smoothness:", AimbotSettings.Smoothness)
 print("   Prediction:", AimbotSettings.Prediction)
